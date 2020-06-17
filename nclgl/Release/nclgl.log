@@ -1,0 +1,20 @@
+﻿  Camera.cpp
+  GameTimer.cpp
+  Keyboard.cpp
+  Matrix4.cpp
+  MD5Anim.cpp
+  MD5FileData.cpp
+  MD5Mesh.cpp
+  MD5Node.cpp
+  Mesh.cpp
+  Mouse.cpp
+  OBJMesh.cpp
+  OGLRenderer.cpp
+E:\Misc\Diss 2020\Code\nclgl\OGLRenderer.cpp(138,42): error C2039: 'DebugCallback': is not a member of 'OGLRenderer'
+E:\Misc\Diss 2020\Code\nclgl\OGLRenderer.h(91): message : see declaration of 'OGLRenderer'
+E:\Misc\Diss 2020\Code\nclgl\OGLRenderer.cpp(138,55): error C2065: 'DebugCallback': undeclared identifier
+E:\Misc\Diss 2020\Code\nclgl\OGLRenderer.cpp(261,19): error C2039: 'DebugCallback': is not a member of 'OGLRenderer'
+E:\Misc\Diss 2020\Code\nclgl\OGLRenderer.h(91): message : see declaration of 'OGLRenderer'
+  Quaternion.cpp
+  Shader.cpp
+  Window.cpp

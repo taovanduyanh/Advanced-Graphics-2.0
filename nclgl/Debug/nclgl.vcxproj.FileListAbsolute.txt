@@ -1,0 +1,3 @@
+E:\Misc\Diss 2020\Dissertation Code\Dissertation\Debug\nclgl.pdb
+E:\Misc\Diss 2020\Code\Graphics For Games\Debug\nclgl.pdb
+E:\Misc\Diss 2020\Code\nclgl\Debug\nclgl.pdb

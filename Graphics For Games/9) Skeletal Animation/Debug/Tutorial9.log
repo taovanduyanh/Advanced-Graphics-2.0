@@ -1,0 +1,6 @@
+﻿  Renderer.cpp
+E:\Misc\Diss 2020\Code\Graphics For Games\9) Skeletal Animation\Renderer.cpp(56,61): warning C4244: 'argument': conversion from 'int' to 'const float', possible loss of data
+E:\Misc\Diss 2020\Code\Graphics For Games\9) Skeletal Animation\Renderer.cpp(56,49): warning C4244: 'argument': conversion from 'int' to 'const float', possible loss of data
+  Tutorial9.cpp
+  Generating Code...
+  Tutorial9.vcxproj -> E:\Misc\Diss 2020\Code\Graphics For Games\Debug\Tutorial 09 - Skeletal Animation.exe
