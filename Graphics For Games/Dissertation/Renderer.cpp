@@ -54,8 +54,30 @@ void Renderer::RenderScene() {
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, posSSBO);
 
 	SetCurrentShader(computeShader);
-	glDispatchComputeGroupSizeARB(1, 1, 1, 1024, 1, 1);
-	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);	// external visibility
+
+	// for the maximum values..
+	{
+		// No. of work groups you can create in each dimension
+		int numWorkGroups[3];
+		glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &numWorkGroups[0]);
+		glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &numWorkGroups[1]);
+		glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 2, &numWorkGroups[2]);
+
+		// No. of invocations you can have in a work group in each dimensions
+		int workGroupSize[3];
+		glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &workGroupSize[0]);
+		glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &workGroupSize[1]);
+		glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 2, &workGroupSize[2]);
+
+		// Total amount of invocations you can have in a work group
+		// => this means you have to be careful about dividing the work
+		int numInvocations;
+		glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &numInvocations);
+		cout << numInvocations << endl;
+
+		glDispatchComputeGroupSizeARB(1, 1, 1, workGroupSize[0], 1, 1);
+		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);	// external visibility
+	}
 
 	// normal scene place
 	SetCurrentShader(sceneShader);
