@@ -24,6 +24,7 @@ protected:
 	GLuint sceneFBO;
 	GLuint colourTex;
 	GLuint depthTex;
+	GLuint image;
 
 	Vector4* colours;
 	GLuint colourSSBO;

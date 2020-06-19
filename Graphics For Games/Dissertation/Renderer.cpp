@@ -17,17 +17,24 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	glGenBuffers(1, &colourSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, colourSSBO);
 
-	colours = new Vector4[3];
-	colours[0] = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
-	colours[1] = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
-	colours[2] = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+	colours = new Vector4[width * height];
 
-	glBufferData(GL_SHADER_STORAGE_BUFFER, 3 * sizeof(Vector4), colours, GL_DYNAMIC_DRAW);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, width * height * sizeof(Vector4), colours, GL_STATIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, colourSSBO);
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	// FBO here
+	// Might need to include the image to perform ray tracing?
+	glGenTextures(1, &image);
+	glBindTexture(GL_TEXTURE_2D, image);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
+	glBindImageTexture(1, image, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+
 	glGenTextures(1, &colourTex);
 	glBindTexture(GL_TEXTURE_2D, colourTex);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
@@ -72,6 +79,10 @@ Renderer::~Renderer(void) {
 	currentShader = NULL;
 
 	glDeleteBuffers(1, &colourSSBO);
+	glDeleteTextures(1, &colourTex);
+	glDeleteTextures(1, &depthTex);
+	glDeleteTextures(1, &image);
+	glDeleteFramebuffers(1, &sceneFBO);
 }
 
 void Renderer::UpdateScene(float msec) {
@@ -121,26 +132,19 @@ void Renderer::RenderScene() {
 		int numInvocations;
 		glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &numInvocations);
 
-		// testing texture colours
-		cout << "Before: " << colours[0].x << " " << colours[0].y << " " << colours[0].z << endl;
-
 		// assume that we are using texture0
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, colourTex);
 		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "sceneTex"), 0);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, image);
+		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "image"), 1);
 		glUniform2f(glGetUniformLocation(currentShader->GetProgram(), "pixelSize"), 1.0f / width, 1.0f / height);
 
 		glDispatchComputeGroupSizeARB(width, height, 1, 1, 1, 1);
-		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);	// makes sure the ssbo is written before
-
-		Vector4* p = (Vector4*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
-		memcpy(colours, p, sizeof(Vector4) * 3);
-		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-		cout << "After(colour) : " << colours[0].x << " " << colours[0].y << " " << colours[0].z << endl;
-		cout << "After(pixel position): " << colours[1].x << " " << colours[1].y << " " << colours[1].z << endl;
+		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);	// makes sure the ssbo is written before
 	}
 
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	SetCurrentShader(finalShader);
@@ -149,9 +153,10 @@ void Renderer::RenderScene() {
 	viewMatrix.ToIdentity();
 	UpdateShaderMatrices();
 
-	sceneQuad->SetTexutre(colourTex);
+	sceneQuad->SetTexutre(image);
 	sceneQuad->Draw();
 
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	glUseProgram(0);
 
 	SwapBuffers();
