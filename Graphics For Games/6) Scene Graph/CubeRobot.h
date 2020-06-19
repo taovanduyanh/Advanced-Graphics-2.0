@@ -9,9 +9,13 @@ public:
 	virtual void Update(float msec);
 
 	static void CreateCube() {
-		OBJMesh* m = new OBJMesh();
-		m->LoadOBJMesh(MESHDIR"cube.obj");
-		cube = m;
+		cube = new OBJMesh();
+		dynamic_cast<OBJMesh*>(cube)->LoadOBJMesh(MESHDIR"Sponze.obj");
+		//cube->SetTexutre(SOIL_load_OGL_texture("../../Textures/brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, 0));
+
+		if (!cube->GetTexture()) {
+			return;
+		}
 	}
 
 	static void DeleteCube() { delete cube; }

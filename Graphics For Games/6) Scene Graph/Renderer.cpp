@@ -7,23 +7,12 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	root = new SceneNode();
 
 	//root->AddChild(new CubeRobot());
-	float z = 0;
-
-	for (int i = 0; i < 10; ++i) {
-		float x = 0;
-		for (int j = 0; j < 10; ++j) {
-			SceneNode* robot = new CubeRobot();
-			robot->SetTransform(Matrix4::Translation(Vector3(x, 0, z)));
-			root->AddChild(robot);
-			x += 50;
-		}
-		z += 50;
-	}
+	root->AddChild(new CubeRobot());
 
 	// remove testing..
-	robot = new CubeRobot();
-	robot->SetTransform(Matrix4::Translation(Vector3(-50, 0, 0)));
-	root->AddChild(robot);
+	//robot = new CubeRobot();
+	//robot->SetTransform(Matrix4::Translation(Vector3(-50, 0, 0)));
+	//root->AddChild(robot);
 
 	currentShader = new Shader(SHADERDIR"SceneVertex.glsl", SHADERDIR"SceneFragment.glsl");
 

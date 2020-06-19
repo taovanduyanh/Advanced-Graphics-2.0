@@ -1,6 +1,7 @@
 #pragma once
 #include "../../nclgl/OGLRenderer.h"
 #include "../../nclgl/Camera.h"
+#include "../../nclgl/OBJMesh.h"
 
 class Renderer : public OGLRenderer {
 public:
@@ -11,13 +12,19 @@ public:
 	virtual void RenderScene();
 
 protected:
-	Mesh* triangle;
+	Mesh* mesh;
+	Mesh* sceneQuad;
 	Camera* camera;
 
 	// testing..
 	Shader* sceneShader;
 	Shader* computeShader;
+	Shader* finalShader;
+
+	GLuint sceneFBO;
+	GLuint colourTex;
+	GLuint depthTex;
 
 	Vector4* colours;
-	GLuint posSSBO;
+	GLuint colourSSBO;
 };
