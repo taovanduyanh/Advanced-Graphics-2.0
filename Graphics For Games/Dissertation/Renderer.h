@@ -2,6 +2,7 @@
 #include "../../nclgl/OGLRenderer.h"
 #include "../../nclgl/Camera.h"
 #include "../../nclgl/OBJMesh.h"
+#include "../../nclgl/HeightMap.h"
 
 class Renderer : public OGLRenderer {
 public:
@@ -28,4 +29,7 @@ protected:
 
 	Vector4* colours;
 	GLuint colourSSBO;
+
+	GLuint trianglesCount;
+	GLuint trianglesAtomic;
 };

@@ -5,7 +5,7 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	sceneQuad = Mesh::GenerateQuad();
 	camera = new Camera();
 
-	sceneShader = new Shader(SHADERDIR"basicVertex.glsl", SHADERDIR"colourFragment.glsl");
+	sceneShader = new Shader(SHADERDIR"basicVertex.glsl", SHADERDIR"colourFragment.glsl", SHADERDIR"TrianglesExtraction.glsl");
 	computeShader = new Shader(SHADERDIR"BasicCompute.glsl");
 	finalShader = new Shader(SHADERDIR"TexturedVertex.glsl", SHADERDIR"TexturedFragment.glsl");
 
@@ -21,8 +21,16 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 
 	glBufferData(GL_SHADER_STORAGE_BUFFER, width * height * sizeof(Vector4), colours, GL_STATIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, colourSSBO);
-
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	// testing triangles counting
+	// atomic..
+	trianglesCount = 0;
+	glGenBuffers(1, &trianglesAtomic);
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, trianglesAtomic);
+	glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), &trianglesCount, GL_STATIC_DRAW);
+	glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 1, trianglesAtomic);
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
 
 	// FBO here
 	// Might need to include the image to perform ray tracing?
@@ -60,8 +68,6 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colourTex, 0);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	projMatrix = Matrix4::Perspective(1.0f, 10000.0f, (float)width / (float)height, 45.0f);
-
 	glEnable(GL_DEPTH_TEST);
 
 	init = true;
@@ -79,6 +85,7 @@ Renderer::~Renderer(void) {
 	currentShader = NULL;
 
 	glDeleteBuffers(1, &colourSSBO);
+	glDeleteBuffers(1, &trianglesAtomic);
 	glDeleteTextures(1, &colourTex);
 	glDeleteTextures(1, &depthTex);
 	glDeleteTextures(1, &image);
@@ -94,9 +101,12 @@ bool test = false;
 
 void Renderer::RenderScene() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	// remove this later..?
+	//projMatrix = Matrix4::Perspective(1.0f, 10000.0f, (float)width / (float)height, 45.0f);
 
 	// SSBO
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, colourSSBO);
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, trianglesAtomic);
 
 	// fbo
 	glBindFramebuffer(GL_FRAMEBUFFER, sceneFBO);
@@ -104,9 +114,15 @@ void Renderer::RenderScene() {
 
 	// normal scene place
 	SetCurrentShader(sceneShader);
-	UpdateShaderMatrices();
+	//UpdateShaderMatrices();
 
 	mesh->Draw();
+
+	// reset the triangle count..
+	//GLuint* p = (GLuint*)glMapBuffer(GL_ATOMIC_COUNTER_BUFFER, GL_WRITE_ONLY);
+	//*p = 0;
+	//glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
+	//glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -134,12 +150,15 @@ void Renderer::RenderScene() {
 
 		// assume that we are using texture0
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, colourTex);
-		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "sceneTex"), 0);
+		glBindTexture(GL_TEXTURE_2D, depthTex);
+		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "depthTex"), 0);
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, image);
 		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "image"), 1);
 		glUniform2f(glGetUniformLocation(currentShader->GetProgram(), "pixelSize"), 1.0f / width, 1.0f / height);
+		glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraPos"), 1, (float*)&camera->GetPosition());
+
+		UpdateShaderMatrices();
 
 		glDispatchComputeGroupSizeARB(width, height, 1, 1, 1, 1);
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);	// makes sure the ssbo is written before

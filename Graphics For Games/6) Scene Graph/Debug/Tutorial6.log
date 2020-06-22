@@ -1,4 +1,7 @@
 ﻿  CubeRobot.cpp
+  Renderer.cpp
+  Tutorial6.cpp
+  Generating Code...
 LINK : warning LNK4286: symbol '___glewGetUniformLocation' defined in 'glew32.lib(glew.obj)' is imported by 'Renderer.obj'
 LINK : warning LNK4286: symbol '___glewUniform1i' defined in 'glew32.lib(glew.obj)' is imported by 'Renderer.obj'
 LINK : warning LNK4286: symbol '___glewUniform4fv' defined in 'glew32.lib(glew.obj)' is imported by 'Renderer.obj'
