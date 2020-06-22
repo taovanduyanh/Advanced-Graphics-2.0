@@ -18,6 +18,7 @@ protected:
 	Camera* camera;
 
 	// testing..
+	float fov;
 	Shader* sceneShader;
 	Shader* computeShader;
 	Shader* finalShader;

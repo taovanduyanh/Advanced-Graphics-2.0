@@ -70,6 +70,9 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 
 	glEnable(GL_DEPTH_TEST);
 
+	// fov here..
+	fov = 45.0f;
+
 	init = true;
 }
 
@@ -102,7 +105,8 @@ bool test = false;
 void Renderer::RenderScene() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	// remove this later..?
-	//projMatrix = Matrix4::Perspective(1.0f, 10000.0f, (float)width / (float)height, 45.0f);
+	//projMatrix = Matrix4::Perspective(1.0f, 10000.0f, (float)width / (float)height, fov);
+	modelMatrix.ToIdentity();
 
 	// SSBO
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, colourSSBO);
@@ -156,6 +160,7 @@ void Renderer::RenderScene() {
 		glBindTexture(GL_TEXTURE_2D, image);
 		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "image"), 1);
 		glUniform2f(glGetUniformLocation(currentShader->GetProgram(), "pixelSize"), 1.0f / width, 1.0f / height);
+		glUniform1f(glGetUniformLocation(currentShader->GetProgram(), "fov"), fov);
 		glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraPos"), 1, (float*)&camera->GetPosition());
 
 		UpdateShaderMatrices();
@@ -168,6 +173,7 @@ void Renderer::RenderScene() {
 
 	SetCurrentShader(finalShader);
 	// Render the scene quad here..
+	modelMatrix = Matrix4::Rotation(180, Vector3(1.0f, 0.0f, 0.0f));
 	projMatrix = Matrix4::Orthographic(-1, 1, 1, -1, -1, 1);
 	viewMatrix.ToIdentity();
 	UpdateShaderMatrices();

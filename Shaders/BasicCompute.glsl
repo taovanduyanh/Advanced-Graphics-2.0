@@ -2,6 +2,8 @@
 #extension GL_ARB_compute_shader : enable
 #extension GL_ARB_compute_variable_group_size : enable
 
+#define PI 3.1415926538
+
 layout(std430, binding = 0) buffer Colours {
     vec4 colourSSBO[];
 };
@@ -12,7 +14,7 @@ struct Ray {
     vec3 origin;
     vec3 direction;
     float t;
-} ray;
+} ray, shadowRay;
 
 struct Triangle {
     vec3 vertices[3];
@@ -25,10 +27,13 @@ uniform sampler2D depthTex;
 uniform mat4 projMatrix;
 uniform mat4 viewMatrix;
 uniform vec2 pixelSize;
+uniform float fov;
 uniform vec3 cameraPos;
 
 bool intersect(Ray ray, Triangle triangle);
 bool pointIsInTrianglePlane(vec3 point, Triangle triangle);
+
+// NOTE: Remember to remove the unecessary comment later
 
 void main() {
     /**
@@ -39,26 +44,31 @@ void main() {
     */
 
     // setting a triangle for testing..
-    triangle.vertices[0] = vec3(0.0, 0.5, -1.0);
-    triangle.vertices[1] = vec3(0.5, -0.5, -1.0);
-    triangle.vertices[2] = vec3(-0.5, -0.5, -1.0);
+    triangle.vertices[0] = vec3(0.0, 0.5, -2.0);
+    triangle.vertices[1] = vec3(0.5, -0.5, -2.0);
+    triangle.vertices[2] = vec3(-0.5, -0.5, -2.0);
     triangle.colour = vec4(1.0, 0.0, 0.0, 1.0);
     triangle.normal = normalize(cross(triangle.vertices[1] - triangle.vertices[0], triangle.vertices[2] - triangle.vertices[0]));
 
     // coordinate in pixels
     // 1st need to find the middle point of the pixel in world space..
     ivec2 imageSize = imageSize(image); // x = width; y = height
+    float imageRatio = imageSize.x / imageSize.y;
     ivec2 pixelCoords = ivec2(gl_GlobalInvocationID.xy);
-    vec3 middlePoint = vec3((pixelCoords.x + 0.5) * pixelSize.x, (pixelCoords.y + 0.5) * pixelSize.y, 0.0); 
-    middlePoint.z = texture(depthTex, pixelCoords.xy).r;
+    vec3 middlePoint = vec3((pixelCoords.x + pixelSize.x * 0.5) * pixelSize.x, (pixelCoords.y + pixelSize.y * 0.5) * pixelSize.y, -1.0); 
+    //middlePoint.z = texture(depthTex, pixelCoords.xy).r;
 
-    mat4 inverseProjView = inverse(projMatrix * viewMatrix);
-    middlePoint.x = middlePoint.x * 2.0 - 1.0;
-    middlePoint.y = 1.0 - 2.0 * middlePoint.y;  // have to do this 
-    vec4 clip = inverseProjView * vec4(middlePoint, 1.0);
-    middlePoint = clip.xyz / clip.w;    // the middle point of the pixel should be in world space now..
-    ray.origin = cameraPos;
-    ray.direction = normalize(middlePoint - cameraPos);
+    // comment this part later..
+    //mat4 inverseProjView = inverse(projMatrix * viewMatrix);
+    mat4 inverseViewMatrix = inverse(viewMatrix);
+    float angleInRadian = fov * PI * 0.5 / 180.0;
+    middlePoint.x = (middlePoint.x * 2.0 - 1.0) * imageRatio * tan(angleInRadian);
+    middlePoint.y = (1.0 - 2.0 * middlePoint.y) * tan(angleInRadian);  // have to do this, otherwise the image will be flipped 
+
+    //vec4 clip = inverseProjView * vec4(middlePoint, 1.0);
+    //middlePoint = clip.xyz / clip.w;    // the middle point of the pixel should be in world space now..
+    ray.origin = (inverseViewMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+    ray.direction = normalize((inverseViewMatrix * vec4(middlePoint, 1.0)).xyz - cameraPos);
 
     vec4 finalColour = vec4(0.0);
 
