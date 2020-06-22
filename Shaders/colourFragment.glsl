@@ -7,5 +7,5 @@ in Vertex {
 out vec4 fragColour;
 
 void main(void) {
-    fragColour = IN.colour;
+    fragColour =  IN.colour;
 }

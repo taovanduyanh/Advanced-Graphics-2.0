@@ -2,7 +2,6 @@
   Renderer.cpp
   Tutorial7.cpp
   Generating Code...
-  LINK : E:\Misc\Diss 2020\Code\Graphics For Games\Debug\Tutorial 07 - Scene Management.exe not found or not built by the last incremental link; performing full link
 LINK : warning LNK4286: symbol '___glewGetUniformLocation' defined in 'glew32.lib(glew.obj)' is imported by 'Renderer.obj'
 LINK : warning LNK4286: symbol '___glewUniform1i' defined in 'glew32.lib(glew.obj)' is imported by 'Renderer.obj'
 LINK : warning LNK4286: symbol '___glewUniform4fv' defined in 'glew32.lib(glew.obj)' is imported by 'Renderer.obj'

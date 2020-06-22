@@ -13,5 +13,5 @@ out Vertex {
 
 void main() {
 	gl_Position = vec4(position, 1.0);
-	OUT.colour = posSSBO[gl_VertexID];
+	OUT.colour = colour;
 }

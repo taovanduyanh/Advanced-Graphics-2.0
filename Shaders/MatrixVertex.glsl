@@ -17,6 +17,6 @@ layout(std430, binding = 0) buffer Pos {
 
 void main() {
     mat4 mvp = projMatrix * viewMatrix * modelMatrix;
-    gl_Position = mvp * posSSBO[gl_VertexID];
+    gl_Position = mvp * vec4(position, 1.0);
     OUT.colour = colour;
 }
