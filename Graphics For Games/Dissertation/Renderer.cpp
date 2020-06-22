@@ -41,7 +41,7 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
-	glBindImageTexture(1, image, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+	glBindImageTexture(0, image, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
 	glGenTextures(1, &colourTex);
 	glBindTexture(GL_TEXTURE_2D, colourTex);
@@ -106,7 +106,6 @@ void Renderer::RenderScene() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	// remove this later..?
 	//projMatrix = Matrix4::Perspective(1.0f, 10000.0f, (float)width / (float)height, fov);
-	modelMatrix.ToIdentity();
 
 	// SSBO
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, colourSSBO);
@@ -154,11 +153,8 @@ void Renderer::RenderScene() {
 
 		// assume that we are using texture0
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, depthTex);
-		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "depthTex"), 0);
-		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, image);
-		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "image"), 1);
+		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "image"), 0);
 		glUniform2f(glGetUniformLocation(currentShader->GetProgram(), "pixelSize"), 1.0f / width, 1.0f / height);
 		glUniform1f(glGetUniformLocation(currentShader->GetProgram(), "fov"), fov);
 		glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraPos"), 1, (float*)&camera->GetPosition());
@@ -167,13 +163,11 @@ void Renderer::RenderScene() {
 
 		glDispatchComputeGroupSizeARB(width, height, 1, 1, 1, 1);
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);	// makes sure the ssbo is written before
+		glBindTexture(GL_TEXTURE_2D, 0);
 	}
-
-	glBindTexture(GL_TEXTURE_2D, 0);
 
 	SetCurrentShader(finalShader);
 	// Render the scene quad here..
-	modelMatrix = Matrix4::Rotation(180, Vector3(1.0f, 0.0f, 0.0f));
 	projMatrix = Matrix4::Orthographic(-1, 1, 1, -1, -1, 1);
 	viewMatrix.ToIdentity();
 	UpdateShaderMatrices();

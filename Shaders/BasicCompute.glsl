@@ -13,7 +13,6 @@ layout(local_size_variable) in;
 struct Ray {
     vec3 origin;
     vec3 direction;
-    float t;
 } ray, shadowRay;
 
 struct Triangle {
@@ -23,8 +22,6 @@ struct Triangle {
 } triangle;
 
 layout(rgba32f) uniform image2D image;
-uniform sampler2D depthTex;
-uniform mat4 projMatrix;
 uniform mat4 viewMatrix;
 uniform vec2 pixelSize;
 uniform float fov;
@@ -44,31 +41,29 @@ void main() {
     */
 
     // setting a triangle for testing..
-    triangle.vertices[0] = vec3(0.0, 0.5, -2.0);
-    triangle.vertices[1] = vec3(0.5, -0.5, -2.0);
-    triangle.vertices[2] = vec3(-0.5, -0.5, -2.0);
+    triangle.vertices[0] = vec3(0.0, 0.5, -1.0);
+    triangle.vertices[1] = vec3(0.5, -0.5, -1.0);
+    triangle.vertices[2] = vec3(-0.5, -0.5, -1.0);
     triangle.colour = vec4(1.0, 0.0, 0.0, 1.0);
     triangle.normal = normalize(cross(triangle.vertices[1] - triangle.vertices[0], triangle.vertices[2] - triangle.vertices[0]));
 
     // coordinate in pixels
-    // 1st need to find the middle point of the pixel in world space..
+    // need to find the middle point of the pixel in world space..
     ivec2 imageSize = imageSize(image); // x = width; y = height
     float imageRatio = imageSize.x / imageSize.y;
     ivec2 pixelCoords = ivec2(gl_GlobalInvocationID.xy);
-    vec3 middlePoint = vec3((pixelCoords.x + pixelSize.x * 0.5) * pixelSize.x, (pixelCoords.y + pixelSize.y * 0.5) * pixelSize.y, -1.0); 
-    //middlePoint.z = texture(depthTex, pixelCoords.xy).r;
+    vec3 middlePoint = vec3((pixelCoords.x + 0.5) * pixelSize.x, (pixelCoords.y + 0.5) * pixelSize.y, -1.0); 
 
     // comment this part later..
-    //mat4 inverseProjView = inverse(projMatrix * viewMatrix);
     mat4 inverseViewMatrix = inverse(viewMatrix);
     float angleInRadian = fov * PI * 0.5 / 180.0;
     middlePoint.x = (middlePoint.x * 2.0 - 1.0) * imageRatio * tan(angleInRadian);
-    middlePoint.y = (1.0 - 2.0 * middlePoint.y) * tan(angleInRadian);  // have to do this, otherwise the image will be flipped 
+    middlePoint.y = (middlePoint.y * 2.0 - 1.0) * tan(angleInRadian);  // do the other way to flip it..
 
-    //vec4 clip = inverseProjView * vec4(middlePoint, 1.0);
-    //middlePoint = clip.xyz / clip.w;    // the middle point of the pixel should be in world space now..
-    ray.origin = (inverseViewMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
-    ray.direction = normalize((inverseViewMatrix * vec4(middlePoint, 1.0)).xyz - cameraPos);
+    // the middle point of the pixel should be in world space now by multiplying with the inverse view matrix..
+    inverseViewMatrix[3].z = -inverseViewMatrix[3].z; // negate the translation -z to fix the camera's movement bug.. (it's probably due to the negative z values stuff)
+    ray.origin = (inverseViewMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;   
+    ray.direction = normalize((inverseViewMatrix * vec4(middlePoint, 1.0)).xyz - ray.origin);
 
     vec4 finalColour = vec4(0.0);
 
@@ -84,32 +79,38 @@ void main() {
     memoryBarrierShared();
 }
 
+/**
+Check for intersection between a ray and a triangle
+*/
 bool intersect(Ray ray, Triangle triangle) {
     // checking for parallel case
     // => if a triangle's normal and a ray are parallel, then there is no intersection
     // aka the dot product between these two equals to zero
     float denominator = dot(triangle.normal, ray.direction);
-
     if (denominator == 0) {
         return false;
     }
 
     denominator = 1 / denominator;
     float d = dot(triangle.normal, triangle.vertices[0]);
-    ray.t = (dot(triangle.normal, ray.origin) + d) * denominator;
+    float t = (dot(triangle.normal, ray.origin) + d) * denominator;   // distance between the ray origin and the intersection point
 
-    if (ray.t <= 0) {
+    // if t is negative then it means the ray is moving backwards - there won't be no intersection in front
+    if (t <= 0) {
         return false;
     }
     
-    vec3 hitPoint = ray.origin + ray.t * ray.direction;
-    if (!pointIsInTrianglePlane(hitPoint, triangle)) {
-        return false;
+    vec3 hitPoint = ray.origin + t * ray.direction;
+    if (!pointIsInTrianglePlane(hitPoint, triangle)) {  // only if the intersection point is in/on the triangular plane then it's true that the ray intersects a triangle
+        return false;   
     }
 
     return true;
 }
 
+/**
+Check if the retrieved intersection point is in/on the plane or not
+*/
 bool pointIsInTrianglePlane(vec3 point, Triangle triangle) {
     vec3 e0 = triangle.vertices[1] - triangle.vertices[0];
     vec3 e1 = triangle.vertices[2] - triangle.vertices[1];
