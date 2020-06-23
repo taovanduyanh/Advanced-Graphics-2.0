@@ -3,6 +3,7 @@
 #extension GL_ARB_compute_variable_group_size : enable
 
 #define PI 3.1415926538
+#define EPSILON 0.0000001
 
 layout(std430, binding = 0) buffer Colours {
     vec4 colourSSBO[];
@@ -13,6 +14,7 @@ layout(local_size_variable) in;
 struct Ray {
     vec3 origin;
     vec3 direction;
+    float t;
 } ray, shadowRay;
 
 struct Triangle {
@@ -32,6 +34,7 @@ uniform float fov;
 uniform vec3 cameraPos;
 
 float toRadian(float angle);
+bool newIntersect(Ray ray, Triangle triangle);
 bool intersect(Ray ray, Triangle triangle);
 bool pointIsInTrianglePlane(vec3 point, Triangle triangle);
 void calculateBerycentricCoord(float tempU, float tempV, Triangle triangle);
@@ -47,9 +50,9 @@ void main() {
     */
 
     // setting a triangle for testing..
-    triangle.vertices[0] = vec3(0.0, 0.5, -2.0);
-    triangle.vertices[1] = vec3(0.5, -0.5, -2.0);
-    triangle.vertices[2] = vec3(-0.5, -0.5, -2.0);
+    triangle.vertices[0] = vec3(0, 0.5, -1.0);
+    triangle.vertices[1] = vec3(0.5, -0.5, -1.0);
+    triangle.vertices[2] = vec3(-0.5,  -0.5, -1.0);
     triangle.colour[0] = vec4(1.0, 0.0, 0.0, 1.0);
     triangle.colour[1] = vec4(0.0, 1.0, 0.0, 1.0);
     triangle.colour[2] = vec4(0.0, 0.0, 1.0, 1.0);
@@ -87,14 +90,46 @@ void main() {
     memoryBarrierShared();
 }
 
+// it requires you to go clockwise..
+bool newIntersect(Ray ray, Triangle triangle) {
+    vec3 a = triangle.vertices[1] - triangle.vertices[0];
+    vec3 b = triangle.vertices[2] - triangle.vertices[0];
+    vec3 pVec = cross(ray.direction, b);
+    float determinator = dot(a, pVec);
+
+    // checking for parallel and backfacing case
+    // the dot product between two vectors equals to zero means that they are parallel -> no intersection
+    // if the dot product is below zero, then the triangle is backfacing
+    if (determinator > 1.0) {
+        return false;
+    }
+
+    // the nanimg convension is not nice.. 
+    float denominator = 1 / determinator;
+
+    vec3 tVec = ray.origin - triangle.vertices[0];
+    barycentricCoord.u = denominator * dot(tVec, pVec);
+    if (barycentricCoord.u < 0 || barycentricCoord.u > 1) {
+        return false;
+    }
+
+    vec3 qVec = cross(tVec, a);
+    barycentricCoord.v = denominator * dot(ray.direction, qVec);
+    if (barycentricCoord.v < 0 || barycentricCoord.u + barycentricCoord.v > 1) {
+        return false;
+    }
+    
+    barycentricCoord.w = 1 - barycentricCoord.u - barycentricCoord.v;
+
+    ray.t = denominator * dot(b, qVec);
+
+    return true;
+}
+
 /**
 Check for intersection between a ray and a triangle
 */
 bool intersect(Ray ray, Triangle triangle) {
-    // checking for parallel and backfacing case
-    // => if a triangle's normal and a ray are parallel, then there is no intersection
-    // aka the dot product between these two equals to zero
-    // if the dot product is below zero, then the triangle is backfacing
     float denominator = dot(triangle.normal, ray.direction);
     if (denominator <= 0) {     
         return false;
