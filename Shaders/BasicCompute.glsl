@@ -17,9 +17,13 @@ struct Ray {
 
 struct Triangle {
     vec3 vertices[3];
-    vec4 colour;
+    vec4 colour[3];
     vec3 normal;
 } triangle;
+
+struct BarycentricCoord {
+    float u, v, w;
+} barycentricCoord;
 
 layout(rgba32f) uniform image2D image;
 uniform mat4 viewMatrix;
@@ -27,8 +31,10 @@ uniform vec2 pixelSize;
 uniform float fov;
 uniform vec3 cameraPos;
 
+float toRadian(float angle);
 bool intersect(Ray ray, Triangle triangle);
 bool pointIsInTrianglePlane(vec3 point, Triangle triangle);
+void calculateBerycentricCoord(float tempU, float tempV, Triangle triangle);
 
 // NOTE: Remember to remove the unecessary comment later
 
@@ -41,11 +47,13 @@ void main() {
     */
 
     // setting a triangle for testing..
-    triangle.vertices[0] = vec3(0.0, 0.5, -1.0);
-    triangle.vertices[1] = vec3(0.5, -0.5, -1.0);
-    triangle.vertices[2] = vec3(-0.5, -0.5, -1.0);
-    triangle.colour = vec4(1.0, 0.0, 0.0, 1.0);
-    triangle.normal = normalize(cross(triangle.vertices[1] - triangle.vertices[0], triangle.vertices[2] - triangle.vertices[0]));
+    triangle.vertices[0] = vec3(0.0, 0.5, -2.0);
+    triangle.vertices[1] = vec3(0.5, -0.5, -2.0);
+    triangle.vertices[2] = vec3(-0.5, -0.5, -2.0);
+    triangle.colour[0] = vec4(1.0, 0.0, 0.0, 1.0);
+    triangle.colour[1] = vec4(0.0, 1.0, 0.0, 1.0);
+    triangle.colour[2] = vec4(0.0, 0.0, 1.0, 1.0);
+    triangle.normal = cross(triangle.vertices[1] - triangle.vertices[0], triangle.vertices[2] - triangle.vertices[0]);   // note that it is not normalized yet..
 
     // coordinate in pixels
     // need to find the middle point of the pixel in world space..
@@ -56,7 +64,7 @@ void main() {
 
     // comment this part later..
     mat4 inverseViewMatrix = inverse(viewMatrix);
-    float angleInRadian = fov * PI * 0.5 / 180.0;
+    float angleInRadian = toRadian(fov) * 0.5;
     middlePoint.x = (middlePoint.x * 2.0 - 1.0) * imageRatio * tan(angleInRadian);
     middlePoint.y = (middlePoint.y * 2.0 - 1.0) * tan(angleInRadian);  // do the other way to flip it..
 
@@ -72,7 +80,7 @@ void main() {
         finalColour = vec4(0.2, 0.2, 0.2, 1.0);
     } 
     else {
-        finalColour = triangle.colour;
+        finalColour = barycentricCoord.u * triangle.colour[2] + barycentricCoord.v * triangle.colour[0] + barycentricCoord.w * triangle.colour[1];
     }
 
     imageStore(image, pixelCoords, finalColour);
@@ -83,11 +91,12 @@ void main() {
 Check for intersection between a ray and a triangle
 */
 bool intersect(Ray ray, Triangle triangle) {
-    // checking for parallel case
+    // checking for parallel and backfacing case
     // => if a triangle's normal and a ray are parallel, then there is no intersection
     // aka the dot product between these two equals to zero
+    // if the dot product is below zero, then the triangle is backfacing
     float denominator = dot(triangle.normal, ray.direction);
-    if (denominator == 0) {
+    if (denominator <= 0) {     
         return false;
     }
 
@@ -96,7 +105,7 @@ bool intersect(Ray ray, Triangle triangle) {
     float t = (dot(triangle.normal, ray.origin) + d) * denominator;   // distance between the ray origin and the intersection point
 
     // if t is negative then it means the ray is moving backwards - there won't be no intersection in front
-    if (t <= 0) {
+    if (t < 0) {
         return false;
     }
     
@@ -109,24 +118,46 @@ bool intersect(Ray ray, Triangle triangle) {
 }
 
 /**
+Convert degree to radian
+*/
+float toRadian(float angle) {
+    return angle * PI / 180.0;
+}
+
+/**
 Check if the retrieved intersection point is in/on the plane or not
 */
 bool pointIsInTrianglePlane(vec3 point, Triangle triangle) {
-    vec3 e0 = triangle.vertices[1] - triangle.vertices[0];
-    vec3 e1 = triangle.vertices[2] - triangle.vertices[1];
-    vec3 e2 = triangle.vertices[0] - triangle.vertices[2];
+    vec3 a = triangle.vertices[1] - triangle.vertices[0];
+    vec3 b = triangle.vertices[2] - triangle.vertices[1];
+    vec3 c = triangle.vertices[0] - triangle.vertices[2];
 
-    vec3 c0 = point - triangle.vertices[0];
-    vec3 c1 = point - triangle.vertices[1];
-    vec3 c2 = point - triangle.vertices[2];
+    vec3 va = point - triangle.vertices[0];
+    vec3 vb = point - triangle.vertices[1];
+    vec3 vc = point - triangle.vertices[2];
 
-    bool condition0 = dot(triangle.normal, cross(e0, c0)) > 0;
-    bool condition1 = dot(triangle.normal, cross(e1, c1)) > 0;
-    bool condition2 = dot(triangle.normal, cross(e2, c2)) > 0;
+    // for the barycentric coordinates..
+    float tempU = dot(triangle.normal, cross(a, va));
+    float tempV = dot(triangle.normal, cross(b, vb));
+    bool condition0 = tempU > 0;
+    bool condition1 = tempV > 0;
+    bool condition2 = dot(triangle.normal, cross(c, vc)) > 0;
 
     if (condition0 && condition1 && condition2) {
+        calculateBerycentricCoord(tempU, tempV, triangle);
         return true;
     }
 
     return false;
+}
+
+/**
+Calculate the Barycentric Coordinates based on the intersection point and triangle normal
+This looks trivial cause most of the values we need are calculated in the function above
+*/
+void calculateBerycentricCoord(float tempU, float tempV, Triangle triangle) {
+    float denominator = 1 / dot(triangle.normal, triangle.normal);
+    barycentricCoord.u = tempU * denominator;
+    barycentricCoord.v = tempV * denominator;
+    barycentricCoord.w = 1 - barycentricCoord.u - barycentricCoord.v;   // u + v + w = 1..
 }

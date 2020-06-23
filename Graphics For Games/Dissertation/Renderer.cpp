@@ -5,7 +5,8 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	sceneQuad = Mesh::GenerateQuad();
 	camera = new Camera();
 
-	sceneShader = new Shader(SHADERDIR"basicVertex.glsl", SHADERDIR"colourFragment.glsl", SHADERDIR"TrianglesExtraction.glsl");
+	// for geometry shader SHADERDIR"TrianglesExtraction.glsl"
+	sceneShader = new Shader(SHADERDIR"basicVertex.glsl", SHADERDIR"colourFragment.glsl");
 	computeShader = new Shader(SHADERDIR"BasicCompute.glsl");
 	finalShader = new Shader(SHADERDIR"TexturedVertex.glsl", SHADERDIR"TexturedFragment.glsl");
 
@@ -72,7 +73,7 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 
 	// fov here..
 	fov = 45.0f;
-
+	cout << modelMatrix << endl;
 	init = true;
 }
 
