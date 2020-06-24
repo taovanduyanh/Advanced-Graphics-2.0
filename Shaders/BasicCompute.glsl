@@ -31,13 +31,15 @@ layout(rgba32f) uniform image2D image;
 uniform mat4 viewMatrix;
 uniform vec2 pixelSize;
 uniform float fov;
-uniform vec3 cameraPos;
+//uniform vec3 cameraPos;
 
 float toRadian(float angle);
-bool newIntersect(Ray ray, Triangle triangle);
+bool rayIntersectsTriangle(Ray ray, Triangle triangle);
+/**
 bool intersect(Ray ray, Triangle triangle);
 bool pointIsInTrianglePlane(vec3 point, Triangle triangle);
 void calculateBerycentricCoord(float tempU, float tempV, Triangle triangle);
+*/
 
 // NOTE: Remember to remove the unecessary comment later
 
@@ -50,9 +52,9 @@ void main() {
     */
 
     // setting a triangle for testing..
-    triangle.vertices[0] = vec3(0, 0.5, -1.0);
-    triangle.vertices[1] = vec3(0.5, -0.5, -1.0);
-    triangle.vertices[2] = vec3(-0.5,  -0.5, -1.0);
+    triangle.vertices[0] = vec3(0, 0.5, 0.0);
+    triangle.vertices[1] = vec3(0.5, -0.5, 0.0);
+    triangle.vertices[2] = vec3(-0.5,  -0.5, 0.0);
     triangle.colour[0] = vec4(1.0, 0.0, 0.0, 1.0);
     triangle.colour[1] = vec4(0.0, 1.0, 0.0, 1.0);
     triangle.colour[2] = vec4(0.0, 0.0, 1.0, 1.0);
@@ -72,26 +74,27 @@ void main() {
     middlePoint.y = (middlePoint.y * 2.0 - 1.0) * tan(angleInRadian);  // do the other way to flip it..
 
     // the middle point of the pixel should be in world space now by multiplying with the inverse view matrix..
-    inverseViewMatrix[3].z = -inverseViewMatrix[3].z; // negate the translation -z to fix the camera's movement bug.. (it's probably due to the negative z values stuff)
+    //inverseViewMatrix[3].z = -inverseViewMatrix[3].z; // negate the translation -z to fix the camera's movement bug.. (it's probably due to the negative z values stuff)
     ray.origin = (inverseViewMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;   
-    ray.direction = normalize((inverseViewMatrix * vec4(middlePoint, 1.0)).xyz - ray.origin);
-
+    ray.direction = normalize(ray.origin - (inverseViewMatrix * vec4(middlePoint, 1.0)).xyz);
     vec4 finalColour = vec4(0.0);
 
     // check for intersection between ray and objects
-    if (!intersect(ray, triangle)) {
+    if (!rayIntersectsTriangle(ray, triangle)) {
         finalColour = vec4(0.2, 0.2, 0.2, 1.0);
     } 
     else {
-        finalColour = barycentricCoord.u * triangle.colour[2] + barycentricCoord.v * triangle.colour[0] + barycentricCoord.w * triangle.colour[1];
+        finalColour = vec4(barycentricCoord.w, barycentricCoord.u, barycentricCoord.v, 1.0);    // this produces the correct colour..
     }
 
     imageStore(image, pixelCoords, finalColour);
     memoryBarrierShared();
 }
 
-// it requires you to go clockwise..
-bool newIntersect(Ray ray, Triangle triangle) {
+/**
+Moller - Trumbore algorithm
+*/
+bool rayIntersectsTriangle(Ray ray, Triangle triangle) {
     vec3 a = triangle.vertices[1] - triangle.vertices[0];
     vec3 b = triangle.vertices[2] - triangle.vertices[0];
     vec3 pVec = cross(ray.direction, b);
@@ -100,35 +103,48 @@ bool newIntersect(Ray ray, Triangle triangle) {
     // checking for parallel and backfacing case
     // the dot product between two vectors equals to zero means that they are parallel -> no intersection
     // if the dot product is below zero, then the triangle is backfacing
-    if (determinator > 1.0) {
+    if (determinator < EPSILON) {
         return false;
     }
 
     // the nanimg convension is not nice.. 
-    float denominator = 1 / determinator;
+    float invDet = 1 / determinator;
 
     vec3 tVec = ray.origin - triangle.vertices[0];
-    barycentricCoord.u = denominator * dot(tVec, pVec);
+    barycentricCoord.u = invDet * dot(tVec, pVec);
     if (barycentricCoord.u < 0 || barycentricCoord.u > 1) {
         return false;
     }
 
     vec3 qVec = cross(tVec, a);
-    barycentricCoord.v = denominator * dot(ray.direction, qVec);
+    barycentricCoord.v = invDet * dot(ray.direction, qVec);
     if (barycentricCoord.v < 0 || barycentricCoord.u + barycentricCoord.v > 1) {
         return false;
     }
     
     barycentricCoord.w = 1 - barycentricCoord.u - barycentricCoord.v;
 
-    ray.t = denominator * dot(b, qVec);
+    ray.t = -invDet * dot(b, qVec); // need to negate this otherwise it would result in something horrible..
+
+    // need to check this, otherwise will end up with a flipped image when going through the triangle..
+    if (ray.t < EPSILON) {
+        return false;
+    }
 
     return true;
 }
 
 /**
-Check for intersection between a ray and a triangle
+Convert degree to radian
 */
+float toRadian(float angle) {
+    return angle * PI / 180.0;
+}
+
+/// simple ray/triangle intersection check here..
+
+/**
+Check for intersection between a ray and a triangle
 bool intersect(Ray ray, Triangle triangle) {
     float denominator = dot(triangle.normal, ray.direction);
     if (denominator <= 0) {     
@@ -153,15 +169,8 @@ bool intersect(Ray ray, Triangle triangle) {
 }
 
 /**
-Convert degree to radian
-*/
-float toRadian(float angle) {
-    return angle * PI / 180.0;
-}
-
-/**
 Check if the retrieved intersection point is in/on the plane or not
-*/
+
 bool pointIsInTrianglePlane(vec3 point, Triangle triangle) {
     vec3 a = triangle.vertices[1] - triangle.vertices[0];
     vec3 b = triangle.vertices[2] - triangle.vertices[1];
@@ -189,10 +198,11 @@ bool pointIsInTrianglePlane(vec3 point, Triangle triangle) {
 /**
 Calculate the Barycentric Coordinates based on the intersection point and triangle normal
 This looks trivial cause most of the values we need are calculated in the function above
-*/
+
 void calculateBerycentricCoord(float tempU, float tempV, Triangle triangle) {
     float denominator = 1 / dot(triangle.normal, triangle.normal);
     barycentricCoord.u = tempU * denominator;
     barycentricCoord.v = tempV * denominator;
     barycentricCoord.w = 1 - barycentricCoord.u - barycentricCoord.v;   // u + v + w = 1..
 }
+*/

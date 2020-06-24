@@ -4,6 +4,7 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	mesh = Mesh::GenerateTriangle();
 	sceneQuad = Mesh::GenerateQuad();
 	camera = new Camera();
+	camera->SetPosition(Vector3(0, 0, 2));
 
 	// for geometry shader SHADERDIR"TrianglesExtraction.glsl"
 	sceneShader = new Shader(SHADERDIR"basicVertex.glsl", SHADERDIR"colourFragment.glsl");
