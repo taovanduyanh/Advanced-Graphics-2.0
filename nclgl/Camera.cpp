@@ -6,6 +6,8 @@ Should be done once per frame! Pass it the msec since
 last frame (default value is for simplicities sake...)
 */
 void Camera::UpdateCamera(float msec)	{
+	direction = position - Vector3(0.0f, 0.0f, 0.0f);
+	direction.Normalise();
 	//Update the mouse by how much
 	pitch -= (Window::GetMouse()->GetRelativePosition().y);
 	yaw	  -= (Window::GetMouse()->GetRelativePosition().x);
@@ -43,6 +45,8 @@ void Camera::UpdateCamera(float msec)	{
 	if(Window::GetKeyboard()->KeyDown(KEYBOARD_SPACE)) {
 		position.y -= msec;
 	}
+
+
 }
 
 /*

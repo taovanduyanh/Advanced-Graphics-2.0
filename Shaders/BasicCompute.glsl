@@ -31,15 +31,9 @@ layout(rgba32f) uniform image2D image;
 uniform mat4 viewMatrix;
 uniform vec2 pixelSize;
 uniform float fov;
-//uniform vec3 cameraPos;
 
 float toRadian(float angle);
 bool rayIntersectsTriangle(Ray ray, Triangle triangle);
-/**
-bool intersect(Ray ray, Triangle triangle);
-bool pointIsInTrianglePlane(vec3 point, Triangle triangle);
-void calculateBerycentricCoord(float tempU, float tempV, Triangle triangle);
-*/
 
 // NOTE: Remember to remove the unecessary comment later
 
@@ -140,69 +134,3 @@ Convert degree to radian
 float toRadian(float angle) {
     return angle * PI / 180.0;
 }
-
-/// simple ray/triangle intersection check here..
-
-/**
-Check for intersection between a ray and a triangle
-bool intersect(Ray ray, Triangle triangle) {
-    float denominator = dot(triangle.normal, ray.direction);
-    if (denominator <= 0) {     
-        return false;
-    }
-
-    denominator = 1 / denominator;
-    float d = dot(triangle.normal, triangle.vertices[0]);
-    float t = (dot(triangle.normal, ray.origin) + d) * denominator;   // distance between the ray origin and the intersection point
-
-    // if t is negative then it means the ray is moving backwards - there won't be no intersection in front
-    if (t < 0) {
-        return false;
-    }
-    
-    vec3 hitPoint = ray.origin + t * ray.direction;
-    if (!pointIsInTrianglePlane(hitPoint, triangle)) {  // only if the intersection point is in/on the triangular plane then it's true that the ray intersects a triangle
-        return false;   
-    }
-
-    return true;
-}
-
-/**
-Check if the retrieved intersection point is in/on the plane or not
-
-bool pointIsInTrianglePlane(vec3 point, Triangle triangle) {
-    vec3 a = triangle.vertices[1] - triangle.vertices[0];
-    vec3 b = triangle.vertices[2] - triangle.vertices[1];
-    vec3 c = triangle.vertices[0] - triangle.vertices[2];
-
-    vec3 va = point - triangle.vertices[0];
-    vec3 vb = point - triangle.vertices[1];
-    vec3 vc = point - triangle.vertices[2];
-
-    // for the barycentric coordinates..
-    float tempU = dot(triangle.normal, cross(a, va));
-    float tempV = dot(triangle.normal, cross(b, vb));
-    bool condition0 = tempU > 0;
-    bool condition1 = tempV > 0;
-    bool condition2 = dot(triangle.normal, cross(c, vc)) > 0;
-
-    if (condition0 && condition1 && condition2) {
-        calculateBerycentricCoord(tempU, tempV, triangle);
-        return true;
-    }
-
-    return false;
-}
-
-/**
-Calculate the Barycentric Coordinates based on the intersection point and triangle normal
-This looks trivial cause most of the values we need are calculated in the function above
-
-void calculateBerycentricCoord(float tempU, float tempV, Triangle triangle) {
-    float denominator = 1 / dot(triangle.normal, triangle.normal);
-    barycentricCoord.u = tempU * denominator;
-    barycentricCoord.v = tempV * denominator;
-    barycentricCoord.w = 1 - barycentricCoord.u - barycentricCoord.v;   // u + v + w = 1..
-}
-*/

@@ -20,6 +20,12 @@ public:
 	void SetBumpMap(GLuint tex) { bumpTexture = tex; }
 	GLuint GetBumpMap() { return bumpTexture; }
 
+	// For sending info into SSBO for ray tracing
+	GLuint GetNumVertices() const { return numVertices; }
+	Vector3* GetPositions() const { return vertices; }
+	Vector3* GetNormals() const { return normals; }
+	Vector4* GetColours() const { return colours; }
+
 protected:
 	void BufferData();
 	void GenerateNormals();

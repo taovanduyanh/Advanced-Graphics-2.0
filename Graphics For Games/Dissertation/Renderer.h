@@ -13,23 +13,29 @@ public:
 	virtual void RenderScene();
 
 protected:
-	Mesh* mesh;
+	void InitRayTracing();
+	void InitFinalScene();
+
+	Mesh* triangle;
 	Mesh* sceneQuad;
 	Camera* camera;
 
+	// Max number of work groups, work items and amount of items/invocations allow in a work group
+	GLint maxWorkGroups[3];
+	GLint maxWorkGroupSizes[3];
+	GLint maxWorkItemsPerGroup;
+
 	// testing..
 	float fov;
-	Shader* sceneShader;
-	Shader* computeShader;
+	Shader* testShader;	// remember to change the name later..
+	Shader* rayTracerShader;
 	Shader* finalShader;
 
-	GLuint sceneFBO;
-	GLuint colourTex;
-	GLuint depthTex;
 	GLuint image;
 
-	Vector4* colours;
-	GLuint colourSSBO;
+	GLuint verticesPosSSBO;
+	GLuint verticesNormalSSBO;
+	GLuint verticesColoursSSBO;
 
 	GLuint trianglesCount;
 	GLuint trianglesAtomic;

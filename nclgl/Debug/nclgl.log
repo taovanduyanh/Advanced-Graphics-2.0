@@ -1,20 +1,15 @@
 ﻿  Camera.cpp
   Frustum.cpp
-  GameTimer.cpp
   HeightMap.cpp
-  Keyboard.cpp
-  Matrix4.cpp
   MD5Anim.cpp
   MD5FileData.cpp
   MD5Mesh.cpp
   MD5Node.cpp
   Mesh.cpp
-E:\Misc\Diss 2020\Code\nclgl\Mesh.cpp(143,20): warning C4018: '<': signed/unsigned mismatch
-  Mouse.cpp
+E:\Misc\Diss 2020\Code\nclgl\Mesh.cpp(55,20): warning C4018: '<': signed/unsigned mismatch
+E:\Misc\Diss 2020\Code\nclgl\Mesh.cpp(148,20): warning C4018: '<': signed/unsigned mismatch
   OBJMesh.cpp
   OGLRenderer.cpp
-  Plane.cpp
-  Quaternion.cpp
   SceneNode.cpp
   Shader.cpp
   Window.cpp
