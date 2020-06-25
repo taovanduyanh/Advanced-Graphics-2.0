@@ -10,12 +10,15 @@ layout(std430, binding = 6) buffer ID {
     int idSSBO[];
 };
 
+uniform mat4 modelMatrix;
 uniform vec3 cameraDirection;
 
 layout(local_size_variable) in;
 
 void main() {
-    if (dot(normalize(cameraDirection), normalsSSBO[gl_LocalInvocationID.x]) <= 0.0) {
+    mat3 normalMatrix = transpose(inverse(mat3(modelMatrix)));
+    vec3 worldNormal = normalize(normalMatrix * normalize(normalsSSBO[gl_LocalInvocationID.x]));
+    if (dot(normalize(cameraDirection), worldNormal) < 0.0) {
         idSSBO[gl_LocalInvocationID.x] = int(gl_LocalInvocationID.x);
     }
     memoryBarrierShared();

@@ -64,7 +64,7 @@ Mesh* Mesh::GenerateQuad() {
 	Mesh* m = new Mesh();
 	m->numVertices = 4;
 	m->type = GL_TRIANGLE_STRIP;
-
+	
 	m->vertices = new Vector3[m->numVertices];
 	m->textureCoords = new Vector2[m->numVertices];
 	m->colours = new Vector4[m->numVertices];

@@ -4,7 +4,7 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	triangle = Mesh::GenerateQuad();
 	sceneQuad = Mesh::GenerateQuad();
 	camera = new Camera();
-	camera->SetPosition(Vector3(0, 0, 2));
+	camera->SetPosition(Vector3(0, 0, 3));
 
 	// for geometry shader SHADERDIR"TrianglesExtraction.glsl"
 	meshReader = new Shader(SHADERDIR"AnotherCompute.glsl");	// change the name later..
@@ -126,6 +126,8 @@ void Renderer::InitMeshReading() {
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, selectedVerticesIDSSBO);
 
 	SetCurrentShader(meshReader);
+	modelMatrix = Matrix4::Translation(Vector3(0, 0, -10));
+	UpdateShaderMatrices();
 	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraDirection"), 1, (float*)&camera->GetDirection());
 	glDispatchComputeGroupSizeARB(1, 1, 1, triangle->GetNumVertices(), 1, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
@@ -144,6 +146,7 @@ void Renderer::InitRayTracing() {
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[POSITION]);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[COLOUR]);
 
+	modelMatrix = Matrix4::Translation(Vector3(0, 0, -10));
 	UpdateShaderMatrices();
 
 	glDispatchComputeGroupSizeARB(width, height, 1, 1, 1, 1);
@@ -161,6 +164,7 @@ void Renderer::InitRayTracing() {
 void Renderer::InitFinalScene() {
 	SetCurrentShader(finalShader);
 	// Render the scene quad here..
+	modelMatrix.ToIdentity();
 	projMatrix = Matrix4::Orthographic(-1, 1, 1, -1, -1, 1);
 	viewMatrix.ToIdentity();
 	UpdateShaderMatrices();

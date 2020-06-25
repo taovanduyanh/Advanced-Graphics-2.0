@@ -36,66 +36,60 @@ struct BarycentricCoord {
 } barycentricCoord;
 
 layout(rgba32f) uniform image2D image;
+uniform mat4 modelMatrix;
 uniform mat4 viewMatrix;
 uniform vec2 pixelSize;
 uniform float fov;
 
 float toRadian(float angle);
 bool rayIntersectsTriangle(Ray ray, Triangle triangle);
+vec3 pixelMiddlePoint(ivec2 pixelCoords);
 
 // NOTE: Remember to remove the unecessary comment later
 
 void main() {
+    vec4 finalColour = vec4(0.0);
+    // coordinate in pixels
+    ivec2 pixelCoords = ivec2(gl_GlobalInvocationID.xy);
+
     // an ID with value of -1 means that there is no vertices in front of the camera - we don't have to process any further 
     if (idSSBO[0] == -1) {
-        return;
+        finalColour = vec4(0.2, 0.2, 0.2, 1.0);
     }
+    else {
+         // setting a triangle for testing..
+        for (int i = 0; i < 3; ++i) {
+            triangle[0].vertices[idSSBO[i]] = posSSBO[idSSBO[i]];
+            triangle[0].colours[idSSBO[i]] = coloursSSBO[idSSBO[i]];
+        }
+        triangle[0].normal = cross(triangle[0].vertices[1] - triangle[0].vertices[0], triangle[0].vertices[2] - triangle[0].vertices[0]);   // note that it is not normalized yet..
 
-    // setting a triangle for testing..
-    for (int i = 0; i < 3; ++i) {
-        triangle[0].vertices[idSSBO[i]] = posSSBO[idSSBO[i]];
-        triangle[0].colours[idSSBO[i]] = coloursSSBO[idSSBO[i]];
-    }
-    triangle[0].normal = cross(triangle[0].vertices[1] - triangle[0].vertices[0], triangle[0].vertices[2] - triangle[0].vertices[0]);   // note that it is not normalized yet..
+        triangle[1].vertices[0] = posSSBO[idSSBO[3]];
+        triangle[1].colours[0] = coloursSSBO[idSSBO[3]];
+        triangle[1].vertices[1] = posSSBO[idSSBO[2]];
+        triangle[1].colours[1] = coloursSSBO[idSSBO[2]];
+        triangle[1].vertices[2] = posSSBO[idSSBO[1]];
+        triangle[1].colours[2] = coloursSSBO[idSSBO[1]];
+        triangle[1].normal = cross(triangle[1].vertices[1] - triangle[1].vertices[0], triangle[1].vertices[2] - triangle[1].vertices[0]);   // note that it is not normalized yet..
 
-    triangle[1].vertices[0] = posSSBO[idSSBO[3]];
-    triangle[1].colours[0] = coloursSSBO[idSSBO[3]];
-    triangle[1].vertices[1] = posSSBO[idSSBO[2]];
-    triangle[1].colours[1] = coloursSSBO[idSSBO[2]];
-    triangle[1].vertices[2] = posSSBO[idSSBO[1]];
-    triangle[1].colours[2] = coloursSSBO[idSSBO[1]];
-    triangle[1].normal = cross(triangle[1].vertices[1] - triangle[1].vertices[0], triangle[1].vertices[2] - triangle[1].vertices[0]);   // note that it is not normalized yet..
+        // the middle point of the pixel should be in world space now by multiplying with the inverse view matrix..
+        // need to find the middle point of the pixel in world space..
+        mat4 inverseViewMatrix = inverse(viewMatrix);
+        vec3 middlePoint = pixelMiddlePoint(pixelCoords);
+        ray.origin = (inverseViewMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;   
+        ray.direction = normalize((inverseViewMatrix * vec4(middlePoint, 1.0)).xyz - ray.origin);
 
-    // coordinate in pixels
-    // need to find the middle point of the pixel in world space..
-    ivec2 imageSize = imageSize(image); // x = width; y = height
-    float imageRatio = imageSize.x / imageSize.y;
-    ivec2 pixelCoords = ivec2(gl_GlobalInvocationID.xy);
-    vec3 middlePoint = vec3((pixelCoords.x + 0.5) * pixelSize.x, (pixelCoords.y + 0.5) * pixelSize.y, -1.0); 
-
-    // comment this part later..
-    mat4 inverseViewMatrix = inverse(viewMatrix);
-    float angleInRadian = toRadian(fov) * 0.5;
-    middlePoint.x = (middlePoint.x * 2.0 - 1.0) * imageRatio * tan(angleInRadian);
-    middlePoint.y = (middlePoint.y * 2.0 - 1.0) * tan(angleInRadian);  // do the other way to flip it..
-
-    // the middle point of the pixel should be in world space now by multiplying with the inverse view matrix..
-    //inverseViewMatrix[3].z = -inverseViewMatrix[3].z; // negate the translation -z to fix the camera's movement bug.. (it's probably due to the negative z values stuff)
-    ray.origin = (inverseViewMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;   
-    ray.direction = normalize(ray.origin - (inverseViewMatrix * vec4(middlePoint, 1.0)).xyz);
-    vec4 finalColour = vec4(0.0);
-
-    // check for intersection between ray and objects
-    for (int i = 0; i < triangle.length(); ++i) {
-        if (rayIntersectsTriangle(ray, triangle[i])) {
-            finalColour = vec4(barycentricCoord.w, barycentricCoord.u, barycentricCoord.v, 1.0);    // this produces the correct colour..
-            break;
-        } 
-        else {
-            finalColour = vec4(0.2, 0.2, 0.2, 1.0);
+        // check for intersection between ray and objects
+        for (int i = 0; i < triangle.length(); ++i) {
+            if (rayIntersectsTriangle(ray, triangle[i])) {
+                finalColour = vec4(barycentricCoord.u, barycentricCoord.v, barycentricCoord.w, 1.0);    // this produces the correct colour..
+                break;
+            } 
+            else {
+                finalColour = vec4(0.2, 0.2, 0.2, 1.0);
+            }
         }
     }
-
 
     imageStore(image, pixelCoords, finalColour);
     memoryBarrierShared();
@@ -103,19 +97,13 @@ void main() {
 
 /**
 Moller - Trumbore algorithm
+Don't need to check for the determinator and t values since the Mesh reader already handles the cases behind + parallel
 */
 bool rayIntersectsTriangle(Ray ray, Triangle triangle) {
     vec3 a = triangle.vertices[1] - triangle.vertices[0];
     vec3 b = triangle.vertices[2] - triangle.vertices[0];
     vec3 pVec = cross(ray.direction, b);
     float determinator = dot(a, pVec);
-
-    // checking for parallel and backfacing case
-    // the dot product between two vectors equals to zero means that they are parallel -> no intersection
-    // if the dot product is below zero, then the triangle is backfacing
-    if (determinator < EPSILON) {
-        return false;
-    }
 
     // the nanimg convension is not nice.. 
     float invDet = 1 / determinator;
@@ -134,14 +122,22 @@ bool rayIntersectsTriangle(Ray ray, Triangle triangle) {
     
     barycentricCoord.w = 1 - barycentricCoord.u - barycentricCoord.v;
 
-    ray.t = -invDet * dot(b, qVec); // need to negate this otherwise it would result in something horrible..
-
-    // need to check this, otherwise will end up with a flipped image when going through the triangle..
-    if (ray.t < EPSILON) {
-        return false;
-    }
+    ray.t = invDet * dot(b, qVec);
 
     return true;
+}
+
+vec3 pixelMiddlePoint(ivec2 pixelCoords) {
+    ivec2 imageSize = imageSize(image); // x = width; y = height
+    float imageRatio = imageSize.x / imageSize.y;
+    vec3 middlePoint = vec3((pixelCoords.x + 0.5) * pixelSize.x, (pixelCoords.y + 0.5) * pixelSize.y, -1.0); 
+
+    // comment this part later..
+    float angleInRadian = toRadian(fov) * 0.5;
+    middlePoint.x = (middlePoint.x * 2.0 - 1.0) * imageRatio * tan(angleInRadian);
+    middlePoint.y = (middlePoint.y * 2.0 - 1.0) * tan(angleInRadian);  // do the other way to flip it..
+
+    return middlePoint;
 }
 
 /**
