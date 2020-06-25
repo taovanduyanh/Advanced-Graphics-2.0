@@ -1,7 +1,7 @@
 #include "Renderer.h"
 
 Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
-	triangle = Mesh::GenerateTriangle();
+	triangle = Mesh::GenerateQuad();
 	sceneQuad = Mesh::GenerateQuad();
 	camera = new Camera();
 	camera->SetPosition(Vector3(0, 0, 2));
@@ -17,24 +17,42 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 
 	// SSBOs here..
 	// Position
-	glGenBuffers(1, &verticesPosSSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesPosSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(triangle->GetPositions()), triangle->GetPositions(), GL_STATIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, verticesPosSSBO);
+	Vector3* positions = triangle->GetPositions();
+	Vector4 temp[4];	// change this later..
+	for (int i = 0; i < triangle->GetNumVertices(); ++i) {
+		temp[i] = Vector4(positions[i].x, positions[i].y, positions[i].z, 1.0f);
+	}
+	glGenBuffers(1, &verticesInfoSSBO[POSITION]);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[POSITION]);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, triangle->GetNumVertices() * sizeof(Vector4), temp, GL_STATIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, POSITION, verticesInfoSSBO[POSITION]);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	// Colours
-	glGenBuffers(1, &verticesColoursSSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesColoursSSBO);
+	glGenBuffers(1, &verticesInfoSSBO[COLOUR]);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[COLOUR]);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(triangle->GetColours()), triangle->GetColours(), GL_STATIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, verticesColoursSSBO);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, COLOUR, verticesInfoSSBO[COLOUR]);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	// Normals
-	glGenBuffers(1, &verticesNormalSSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesNormalSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(triangle->GetNormals()), triangle->GetNormals(), GL_STATIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, verticesNormalSSBO);
+	Vector3* normals = triangle->GetNormals();
+	for (int i = 0; i < triangle->GetNumVertices(); ++i) {
+		temp[i] = Vector4(normals[i].x, normals[i].y, normals[i].z, 1.0f);
+	}
+	glGenBuffers(1, &verticesInfoSSBO[NORMAL]);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[NORMAL]);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, triangle->GetNumVertices() * sizeof(Vector4), temp, GL_STATIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NORMAL, verticesInfoSSBO[NORMAL]);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	// Vertex ID [triangle->GetNumVertices()]
+	collectedID = new GLint[triangle->GetNumVertices()];
+	std::fill_n(collectedID, triangle->GetNumVertices(), -1);
+	glGenBuffers(1, &selectedVerticesIDSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, selectedVerticesIDSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, triangle->GetNumVertices() * sizeof(GLint), collectedID, GL_STATIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX, selectedVerticesIDSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	// testing triangles counting
@@ -89,9 +107,9 @@ Renderer::~Renderer(void) {
 	delete finalShader;
 	currentShader = NULL;
 
-	glDeleteBuffers(1, &verticesPosSSBO);
-	glDeleteBuffers(1, &verticesColoursSSBO);
-	glDeleteBuffers(1, &verticesNormalSSBO);
+	delete[] collectedID;
+
+	glDeleteBuffers(MAX, verticesInfoSSBO);
 	glDeleteBuffers(1, &trianglesAtomic);
 	glDeleteTextures(1, &image);
 }
@@ -99,7 +117,17 @@ Renderer::~Renderer(void) {
 void Renderer::UpdateScene(float msec) {
 	camera->UpdateCamera(msec);
 	viewMatrix = camera->BuildViewMatrix();
-	//cout << "Direction: " << camera->GetDirection() << endl;
+}
+
+void Renderer::InitMeshReading() {
+	// SSBO
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[NORMAL]);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, selectedVerticesIDSSBO);
+
+	SetCurrentShader(testShader);
+	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraDirection"), 1, (float*)&camera->GetDirection());
+	glDispatchComputeGroupSizeARB(1, 1, 1, triangle->GetNumVertices(), 1, 1);
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
 void Renderer::InitRayTracing() {
@@ -112,13 +140,19 @@ void Renderer::InitRayTracing() {
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "image"), 0);
 	glUniform2f(glGetUniformLocation(currentShader->GetProgram(), "pixelSize"), 1.0f / width, 1.0f / height);
 	glUniform1f(glGetUniformLocation(currentShader->GetProgram(), "fov"), fov);
-	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraPos"), 1, (float*)&camera->GetPosition());
 
 	UpdateShaderMatrices();
 
-	glDispatchComputeGroupSizeARB(width, height, 1, 1, 1, 1);
+	glDispatchComputeGroupSizeARB(width, height, 2, 1, 1, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);	// makes sure the ssbo is written before
+
 	glBindTexture(GL_TEXTURE_2D, 0);
+
+	GLint* p = (GLint*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
+	memcpy(p, collectedID, triangle->GetNumVertices() * sizeof(GLint));
+	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
 void Renderer::InitFinalScene() {
@@ -131,11 +165,15 @@ void Renderer::InitFinalScene() {
 	sceneQuad->SetTexutre(image);
 	sceneQuad->Draw();
 
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	glUseProgram(0);
 }
 
 void Renderer::RenderScene() {
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	InitMeshReading();
+	InitRayTracing();
+	InitFinalScene();
+
 	//glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, trianglesAtomic);
 
 	// reset the triangle count..
@@ -145,14 +183,5 @@ void Renderer::RenderScene() {
 	//glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
 	//SetCurrentShader(testShader);
 
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	// SSBO
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesPosSSBO);
-
-	//glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraDirection"), 1, (float*)&camera->GetDirection());
-
-	InitRayTracing();
-	InitFinalScene();
 	SwapBuffers();
 }

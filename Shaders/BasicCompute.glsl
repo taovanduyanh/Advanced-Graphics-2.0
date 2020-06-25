@@ -5,8 +5,16 @@
 #define PI 3.1415926538
 #define EPSILON 0.0000001
 
-layout(std430, binding = 0) buffer Colours {
-    vec4 colourSSBO[];
+layout(std430, binding = 0) buffer Positions {
+    vec3 posSSBO[];
+};
+
+layout(std430, binding = 1) buffer Colours {
+    vec4 coloursSSBO[];
+};
+
+layout(std430, binding = 6) buffer ID {
+    int idSSBO[];
 };
 
 layout(local_size_variable) in;
@@ -19,9 +27,9 @@ struct Ray {
 
 struct Triangle {
     vec3 vertices[3];
-    vec4 colour[3];
+    vec4 colours[3];
     vec3 normal;
-} triangle;
+} triangle[2];
 
 struct BarycentricCoord {
     float u, v, w;
@@ -38,21 +46,25 @@ bool rayIntersectsTriangle(Ray ray, Triangle triangle);
 // NOTE: Remember to remove the unecessary comment later
 
 void main() {
-    /**
-    vec2 texCoord = gl_GlobalInvocationID.xy * pixelSize;
-    vec4 colour = texture(depthTex, texCoord);
-    uint index = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * gl_NumWorkGroups.x;
-    colourSSBO[index] = colour * vec4(1.0, 0.0, 0.5, 1.0);
-    */
+    // an ID with value of -1 means that there is no vertices in front of the camera - we don't have to process any further 
+    if (idSSBO[0] == -1) {
+        return;
+    }
 
     // setting a triangle for testing..
-    triangle.vertices[0] = vec3(0, 0.5, 0.0);
-    triangle.vertices[1] = vec3(0.5, -0.5, 0.0);
-    triangle.vertices[2] = vec3(-0.5,  -0.5, 0.0);
-    triangle.colour[0] = vec4(1.0, 0.0, 0.0, 1.0);
-    triangle.colour[1] = vec4(0.0, 1.0, 0.0, 1.0);
-    triangle.colour[2] = vec4(0.0, 0.0, 1.0, 1.0);
-    triangle.normal = cross(triangle.vertices[1] - triangle.vertices[0], triangle.vertices[2] - triangle.vertices[0]);   // note that it is not normalized yet..
+    for (int i = 0; i < 3; ++i) {
+        triangle[0].vertices[idSSBO[i]] = posSSBO[idSSBO[i]];
+        triangle[0].colours[idSSBO[i]] = coloursSSBO[idSSBO[i]];
+    }
+    triangle[0].normal = cross(triangle[0].vertices[1] - triangle[0].vertices[0], triangle[0].vertices[2] - triangle[0].vertices[0]);   // note that it is not normalized yet..
+
+    triangle[1].vertices[0] = posSSBO[idSSBO[3]];
+    triangle[1].colours[0] = coloursSSBO[idSSBO[3]];
+    triangle[1].vertices[1] = posSSBO[idSSBO[2]];
+    triangle[1].colours[1] = coloursSSBO[idSSBO[2]];
+    triangle[1].vertices[2] = posSSBO[idSSBO[1]];
+    triangle[1].colours[2] = coloursSSBO[idSSBO[1]];
+    triangle[1].normal = cross(triangle[1].vertices[1] - triangle[1].vertices[0], triangle[1].vertices[2] - triangle[1].vertices[0]);   // note that it is not normalized yet..
 
     // coordinate in pixels
     // need to find the middle point of the pixel in world space..
@@ -73,12 +85,14 @@ void main() {
     ray.direction = normalize(ray.origin - (inverseViewMatrix * vec4(middlePoint, 1.0)).xyz);
     vec4 finalColour = vec4(0.0);
 
-    // check for intersection between ray and objects
-    if (!rayIntersectsTriangle(ray, triangle)) {
-        finalColour = vec4(0.2, 0.2, 0.2, 1.0);
-    } 
-    else {
-        finalColour = vec4(barycentricCoord.w, barycentricCoord.u, barycentricCoord.v, 1.0);    // this produces the correct colour..
+    for (int i = 0; i < triangle.length(); ++i) {
+        // check for intersection between ray and objects
+        if (!rayIntersectsTriangle(ray, triangle[i])) {
+            //finalColour = vec4(0.2, 0.2, 0.2, 1.0);
+        } 
+        else {
+            finalColour = vec4(barycentricCoord.w, barycentricCoord.u, barycentricCoord.v, 1.0);    // this produces the correct colour..
+        }
     }
 
     imageStore(image, pixelCoords, finalColour);

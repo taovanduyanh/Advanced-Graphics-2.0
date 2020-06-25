@@ -3,6 +3,11 @@
 #include "../../nclgl/Camera.h"
 #include "../../nclgl/OBJMesh.h"
 #include "../../nclgl/HeightMap.h"
+#include <algorithm>
+
+enum VertexInfo {
+	POSITION, COLOUR, TEX_COORD, NORMAL, TANGENT, INDEX, MAX
+};
 
 class Renderer : public OGLRenderer {
 public:
@@ -13,6 +18,7 @@ public:
 	virtual void RenderScene();
 
 protected:
+	void InitMeshReading();
 	void InitRayTracing();
 	void InitFinalScene();
 
@@ -33,9 +39,12 @@ protected:
 
 	GLuint image;
 
-	GLuint verticesPosSSBO;
-	GLuint verticesNormalSSBO;
-	GLuint verticesColoursSSBO;
+	// pre-updated vertices info
+	GLuint verticesInfoSSBO[MAX];
+
+	// the selected vertices ID
+	GLuint selectedVerticesIDSSBO;
+	GLint* collectedID;
 
 	GLuint trianglesCount;
 	GLuint trianglesAtomic;
