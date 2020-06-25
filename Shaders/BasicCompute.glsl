@@ -86,12 +86,16 @@ void main() {
     vec4 finalColour = vec4(0.0);
 
     // check for intersection between ray and objects
-    if (!rayIntersectsTriangle(ray, triangle[gl_LocalInvocationID.x])) {
-        finalColour = vec4(0.2, 0.2, 0.2, 1.0);
-    } 
-    else {
-        finalColour = vec4(barycentricCoord.w, barycentricCoord.u, barycentricCoord.v, 1.0);    // this produces the correct colour..
+    for (int i = 0; i < triangle.length(); ++i) {
+        if (rayIntersectsTriangle(ray, triangle[i])) {
+            finalColour = vec4(barycentricCoord.w, barycentricCoord.u, barycentricCoord.v, 1.0);    // this produces the correct colour..
+            break;
+        } 
+        else {
+            finalColour = vec4(0.2, 0.2, 0.2, 1.0);
+        }
     }
+
 
     imageStore(image, pixelCoords, finalColour);
     memoryBarrierShared();

@@ -33,7 +33,7 @@ protected:
 
 	// testing..
 	float fov;
-	Shader* testShader;	// remember to change the name later..
+	Shader* meshReader;	// remember to change the name later..
 	Shader* rayTracerShader;
 	Shader* finalShader;
 

@@ -7,11 +7,11 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	camera->SetPosition(Vector3(0, 0, 2));
 
 	// for geometry shader SHADERDIR"TrianglesExtraction.glsl"
-	testShader = new Shader(SHADERDIR"AnotherCompute.glsl");	// change the name later..
+	meshReader = new Shader(SHADERDIR"AnotherCompute.glsl");	// change the name later..
 	rayTracerShader = new Shader(SHADERDIR"BasicCompute.glsl");
 	finalShader = new Shader(SHADERDIR"TexturedVertex.glsl", SHADERDIR"TexturedFragment.glsl");
 
-	if (!testShader->LinkProgram() || !rayTracerShader->LinkProgram() || !finalShader->LinkProgram()) {
+	if (!meshReader->LinkProgram() || !rayTracerShader->LinkProgram() || !finalShader->LinkProgram()) {
 		return;
 	}
 
@@ -31,7 +31,7 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	// Colours
 	glGenBuffers(1, &verticesInfoSSBO[COLOUR]);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[COLOUR]);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(triangle->GetColours()), triangle->GetColours(), GL_STATIC_DRAW);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, triangle->GetNumVertices() * sizeof(Vector4), triangle->GetColours(), GL_STATIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, COLOUR, verticesInfoSSBO[COLOUR]);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
@@ -88,6 +88,7 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
 	glBindImageTexture(0, image, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+	glBindTexture(GL_TEXTURE_2D, 0);
 
 	glEnable(GL_DEPTH_TEST);
 
@@ -102,7 +103,7 @@ Renderer::~Renderer(void) {
 	delete sceneQuad;
 	delete camera;
 
-	delete testShader;
+	delete meshReader;
 	delete rayTracerShader;
 	delete finalShader;
 	currentShader = NULL;
@@ -124,7 +125,7 @@ void Renderer::InitMeshReading() {
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[NORMAL]);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, selectedVerticesIDSSBO);
 
-	SetCurrentShader(testShader);
+	SetCurrentShader(meshReader);
 	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraDirection"), 1, (float*)&camera->GetDirection());
 	glDispatchComputeGroupSizeARB(1, 1, 1, triangle->GetNumVertices(), 1, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
@@ -135,23 +136,25 @@ void Renderer::InitRayTracing() {
 	SetCurrentShader(rayTracerShader);
 
 	// assume that we are using texture0
-	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, image);
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "image"), 0);
 	glUniform2f(glGetUniformLocation(currentShader->GetProgram(), "pixelSize"), 1.0f / width, 1.0f / height);
 	glUniform1f(glGetUniformLocation(currentShader->GetProgram(), "fov"), fov);
 
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[POSITION]);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[COLOUR]);
+
 	UpdateShaderMatrices();
 
-	glDispatchComputeGroupSizeARB(width, height, 1, 2, 1, 1);
+	glDispatchComputeGroupSizeARB(width, height, 1, 1, 1, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);	// makes sure the ssbo is written before
 
 	glBindTexture(GL_TEXTURE_2D, 0);
-
+	
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, selectedVerticesIDSSBO);
 	GLint* p = (GLint*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
 	memcpy(p, collectedID, triangle->GetNumVertices() * sizeof(GLint));
 	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
