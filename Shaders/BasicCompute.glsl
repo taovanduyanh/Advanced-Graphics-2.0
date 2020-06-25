@@ -85,14 +85,12 @@ void main() {
     ray.direction = normalize(ray.origin - (inverseViewMatrix * vec4(middlePoint, 1.0)).xyz);
     vec4 finalColour = vec4(0.0);
 
-    for (int i = 0; i < triangle.length(); ++i) {
-        // check for intersection between ray and objects
-        if (!rayIntersectsTriangle(ray, triangle[i])) {
-            //finalColour = vec4(0.2, 0.2, 0.2, 1.0);
-        } 
-        else {
-            finalColour = vec4(barycentricCoord.w, barycentricCoord.u, barycentricCoord.v, 1.0);    // this produces the correct colour..
-        }
+    // check for intersection between ray and objects
+    if (!rayIntersectsTriangle(ray, triangle[gl_LocalInvocationID.x])) {
+        finalColour = vec4(0.2, 0.2, 0.2, 1.0);
+    } 
+    else {
+        finalColour = vec4(barycentricCoord.w, barycentricCoord.u, barycentricCoord.v, 1.0);    // this produces the correct colour..
     }
 
     imageStore(image, pixelCoords, finalColour);

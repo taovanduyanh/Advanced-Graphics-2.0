@@ -143,7 +143,7 @@ void Renderer::InitRayTracing() {
 
 	UpdateShaderMatrices();
 
-	glDispatchComputeGroupSizeARB(width, height, 2, 1, 1, 1);
+	glDispatchComputeGroupSizeARB(width, height, 1, 2, 1, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);	// makes sure the ssbo is written before
 
 	glBindTexture(GL_TEXTURE_2D, 0);
