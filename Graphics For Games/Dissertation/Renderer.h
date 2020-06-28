@@ -19,8 +19,13 @@ public:
 
 protected:
 	void InitMeshReading();
+	void FinalizeCollectedID();
 	void InitRayTracing();
 	void InitFinalScene();
+
+	void ResetAtomicCount();
+	void ResetIDLists();
+	void ResetBuffers();
 
 	Mesh* triangle;
 	Mesh* sceneQuad;
@@ -33,7 +38,8 @@ protected:
 
 	// testing..
 	float fov;
-	Shader* meshReader;	// remember to change the name later..
+	Shader* meshReader;	
+	Shader* idFinalizer;
 	Shader* rayTracerShader;
 	Shader* finalShader;
 
@@ -44,8 +50,9 @@ protected:
 
 	// the selected vertices ID
 	GLuint selectedVerticesIDSSBO;
+	GLuint finalVerticesIDSSBO;
+	GLuint collectedIDCount;
+	GLuint idAtomic;
 	GLint* collectedID;
-
-	GLuint trianglesCount;
-	GLuint trianglesAtomic;
+	GLint* finalCollectedID;
 };

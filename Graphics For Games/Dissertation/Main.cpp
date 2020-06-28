@@ -4,7 +4,7 @@
 #include "Renderer.h"
 
 int main() {
-	Window w("Advanced Graphics", 800, 600, false);
+	Window w("Ray Tracing - Tao Van Duy Anh", 800, 600, false);
 	if (!w.HasInitialised()) {
 		return -1;
 	}

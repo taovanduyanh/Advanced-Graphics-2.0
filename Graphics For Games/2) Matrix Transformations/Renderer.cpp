@@ -11,7 +11,8 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	}
 
 	init = true;
-
+	//glEnable(GL_CULL_FACE);
+	//glCullFace(GL_BACK);
 	SwitchToOrthographic();
 }
 
@@ -46,7 +47,7 @@ void Renderer::RenderScene() {
 		tempPos.x -= (i * 100.0f);
 		tempPos.y -= (i * 100.0f);
 
-		modelMatrix = Matrix4::Translation(tempPos) * Matrix4::Rotation(rotation, Vector3(0, 1, 0)) * Matrix4::Scale(Vector3(scale, scale, scale));
+		modelMatrix = Matrix4::Translation(tempPos) * Matrix4::Rotation(-45, Vector3(0, 1, 0)) * Matrix4::Scale(Vector3(scale, scale, scale));
 
 		glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "modelMatrix"), 1, false, (float*)&modelMatrix);
 

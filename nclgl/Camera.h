@@ -53,14 +53,8 @@ public:
 	//Sets pitch, in degrees
 	void	SetPitch(float p) {pitch = p;}
 
-	//Gets the current direction of the camera
-	Vector3 GetDirection() const { return direction; }
-	//Sets the direction of the camera
-	void SetDirection(Vector3 d) { direction = d; direction.Normalise(); }
-
 protected:
 	float	yaw;
 	float	pitch;
 	Vector3 position;
-	Vector3 direction;
 };

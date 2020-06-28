@@ -13,11 +13,12 @@ layout(std430, binding = 1) buffer Colours {
     vec4 coloursSSBO[];
 };
 
-layout(std430, binding = 6) buffer ID {
-    int idSSBO[];
+layout(std430, binding = 7) buffer FinalID {
+    int finalIDSSBO[];
 };
 
 layout(local_size_variable) in;
+layout(binding = 0, offset = 0) uniform atomic_uint idCount;
 
 struct Ray {
     vec3 origin;
@@ -52,25 +53,22 @@ void main() {
     // coordinate in pixels
     ivec2 pixelCoords = ivec2(gl_GlobalInvocationID.xy);
 
-    // an ID with value of -1 means that there is no vertices in front of the camera - we don't have to process any further 
-    if (idSSBO[0] == -1) {
+    uint numVertices = atomicCounter(idCount);
+
+    if (numVertices < 3) {
         finalColour = vec4(0.2, 0.2, 0.2, 1.0);
     }
     else {
-         // setting a triangle for testing..
-        for (int i = 0; i < 3; ++i) {
-            triangle[0].vertices[idSSBO[i]] = posSSBO[idSSBO[i]];
-            triangle[0].colours[idSSBO[i]] = coloursSSBO[idSSBO[i]];
-        }
-        triangle[0].normal = cross(triangle[0].vertices[1] - triangle[0].vertices[0], triangle[0].vertices[2] - triangle[0].vertices[0]);   // note that it is not normalized yet..
+        uint numTriangles = numVertices % 3 + 1;
+        uint currentIndex = 2;
 
-        triangle[1].vertices[0] = posSSBO[idSSBO[3]];
-        triangle[1].colours[0] = coloursSSBO[idSSBO[3]];
-        triangle[1].vertices[1] = posSSBO[idSSBO[2]];
-        triangle[1].colours[1] = coloursSSBO[idSSBO[2]];
-        triangle[1].vertices[2] = posSSBO[idSSBO[1]];
-        triangle[1].colours[2] = coloursSSBO[idSSBO[1]];
-        triangle[1].normal = cross(triangle[1].vertices[1] - triangle[1].vertices[0], triangle[1].vertices[2] - triangle[1].vertices[0]);   // note that it is not normalized yet..
+        for (int i = 0; i < numTriangles; ++i) {
+            for (int j = 0, k = 2; j < 3 && k >= 0; ++j, --k) {
+                triangle[i].vertices[k] = (modelMatrix * vec4(posSSBO[finalIDSSBO[currentIndex - j]], 1.0)).xyz;
+                triangle[i].colours[k] = coloursSSBO[finalIDSSBO[currentIndex - j]];
+            }
+            ++currentIndex;
+        }
 
         // the middle point of the pixel should be in world space now by multiplying with the inverse view matrix..
         // need to find the middle point of the pixel in world space..
@@ -82,7 +80,8 @@ void main() {
         // check for intersection between ray and objects
         for (int i = 0; i < triangle.length(); ++i) {
             if (rayIntersectsTriangle(ray, triangle[i])) {
-                finalColour = vec4(barycentricCoord.u, barycentricCoord.v, barycentricCoord.w, 1.0);    // this produces the correct colour..
+                finalColour = barycentricCoord.w * triangle[i].colours[0] +  barycentricCoord.v * triangle[i].colours[2] + barycentricCoord.u * triangle[i].colours[1];   // this produces the correct colours..
+                //finalColour = vec4(barycentricCoord.w, barycentricCoord.v, barycentricCoord.u, 1.0);
                 break;
             } 
             else {
