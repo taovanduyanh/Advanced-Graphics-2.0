@@ -5,13 +5,21 @@ enum MeshBuffer {
 	VERTEX_BUFFER, COLOUR_BUFFER, TEXTURE_BUFFER, NORMAL_BUFFER, TANGENT_BUFFER, INDEX_BUFFER, MAX_BUFFER
 };
 
+
+
 class Mesh {
 public:
+	struct Triangle {
+		GLuint verticesIndices[3];
+		GLuint texCoordsIndices[3];
+		GLuint normalsIndices[3];
+	};
+
 	Mesh(void);
 	~Mesh(void);
-	
+
 	virtual void Draw();
-	static Mesh * GenerateTriangle();
+	static Mesh* GenerateTriangle();
 	static Mesh* GenerateQuad();
 
 	void SetTexutre(GLuint tex) { texture = tex; }
@@ -25,6 +33,9 @@ public:
 	Vector3* GetPositions() const { return vertices; }
 	Vector3* GetNormals() const { return normals; }
 	Vector4* GetColours() const { return colours; }
+
+	GLuint GetNumFaces() const { return numFaces; }
+	Triangle* GetMeshFaces() const { return facesList; }
 
 protected:
 	void BufferData();
@@ -40,11 +51,18 @@ protected:
 	GLuint bumpTexture;
 
 	GLuint type;
-	
+
 	Vector3* vertices;
 	Vector4* colours;
 	Vector2* textureCoords;
 	Vector3* normals;
 	Vector3* tangents;
 	GLuint* indices;
+
+	// A triangle/face always has three vertices.. 
+	// Note that some OBJ meshes only have positions 
+	// But it should be fine..
+	// And all of them have number of faces (assumed)
+	GLuint numFaces;
+	Triangle* facesList;
 };

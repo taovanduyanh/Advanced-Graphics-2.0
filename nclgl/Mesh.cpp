@@ -17,6 +17,9 @@ Mesh::Mesh(void) {
 	normals = NULL;
 	tangents = NULL;
 	type = GL_TRIANGLES;
+
+	numFaces = 0;
+	facesList = NULL;
 }
 
 Mesh::~Mesh(void) {
@@ -30,10 +33,12 @@ glDeleteVertexArrays(1, &arrayObject);
 	delete[] normals;
 	delete[] tangents;
 	delete[] indices;
+	delete[] facesList;
 }
 
 Mesh* Mesh::GenerateTriangle() {
 	Mesh * m = new Mesh();
+	m->numFaces = 1;
 	m->numVertices = 3;
 
 	m->vertices = new Vector3[m->numVertices];
@@ -51,9 +56,16 @@ Mesh* Mesh::GenerateTriangle() {
 	m->colours[1] = Vector4(0.0f, 1.0f, 0.0f, 1.0f);
 	m->colours[2] = Vector4(0.0f, 0.0f, 1.0f, 1.0f);
 
+	// Settings the normals and face here..
+	// NOTE: this is just simply for a single triangle..
 	m->normals = new Vector3[m->numVertices];
+	m->facesList = new Triangle[m->numFaces];
+	m->facesList[0] = Triangle();
 	for (int i = 0; i < m->numVertices; ++i) {
 		m->normals[i] = Vector3(0.0f, 0.0f, -1.0f);
+		m->facesList[0].verticesIndices[i] = i;
+		m->facesList[0].texCoordsIndices[i] = i;
+		m->facesList[0].normalsIndices[i] = i;
 	}
 
 	m->BufferData();
@@ -62,6 +74,7 @@ Mesh* Mesh::GenerateTriangle() {
 
 Mesh* Mesh::GenerateQuad() {
 	Mesh* m = new Mesh();
+	m->numFaces = 2;
 	m->numVertices = 4;
 	m->type = GL_TRIANGLE_STRIP;
 	
@@ -86,6 +99,27 @@ Mesh* Mesh::GenerateQuad() {
 		m->normals[i] = Vector3(0.0f, 0.0f, -1.0f);
 		m->tangents[i] = Vector3(1.0f, 0.0f, 0.0f);
 	}
+
+	// Faces..
+	m->facesList = new Triangle[m->numFaces];
+	for (int i = 0; i < m->numFaces; ++i) {
+		m->facesList[i] = Triangle();
+	}
+
+	// 1st triangle
+	m->facesList[0].verticesIndices[0] = 0;
+	m->facesList[0].verticesIndices[1] = 1;
+	m->facesList[0].verticesIndices[2] = 2;
+	m->facesList[0].normalsIndices[0] = 0;
+	m->facesList[0].normalsIndices[1] = 1;
+	m->facesList[0].normalsIndices[2] = 2;
+
+	m->facesList[1].verticesIndices[0] = 1;
+	m->facesList[1].verticesIndices[1] = 2;
+	m->facesList[1].verticesIndices[2] = 3;
+	m->facesList[1].normalsIndices[0] = 1;
+	m->facesList[1].normalsIndices[1] = 2;
+	m->facesList[1].normalsIndices[2] = 3;
 
 	m->BufferData();
 	return m;

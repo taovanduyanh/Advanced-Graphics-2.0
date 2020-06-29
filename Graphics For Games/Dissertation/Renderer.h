@@ -6,7 +6,7 @@
 #include <algorithm>
 
 enum VertexInfo {
-	POSITION, COLOUR, TEX_COORD, NORMAL, TANGENT, INDEX, MAX
+	POSITION, COLOUR, TEX_COORD, NORMAL, TANGENT, MAX
 };
 
 class Renderer : public OGLRenderer {
@@ -49,6 +49,7 @@ protected:
 	GLuint verticesInfoSSBO[MAX];
 
 	// the selected vertices ID
+	GLuint meshesInfoSSBO;
 	GLuint selectedVerticesIDSSBO;
 	GLuint finalVerticesIDSSBO;
 	GLuint collectedIDCount;

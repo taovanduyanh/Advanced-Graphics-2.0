@@ -67,6 +67,13 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX + 1, finalVerticesIDSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
+	// Faces
+	glGenBuffers(1, &meshesInfoSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, meshesInfoSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, triangle->GetNumFaces() * sizeof(Mesh::Triangle), triangle->GetMeshFaces(), GL_STATIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX + 2, meshesInfoSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
 	// testing triangles counting
 	// atomic..
 	collectedIDCount = 0;
@@ -133,6 +140,7 @@ void Renderer::UpdateScene(float msec) {
 }
 
 void Renderer::ResetAtomicCount() {
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, idAtomic);
 	GLuint* p = (GLuint*)glMapBuffer(GL_ATOMIC_COUNTER_BUFFER, GL_WRITE_ONLY);
 	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, idAtomic);
 	*p = 0;		//reset the vertices count..
@@ -159,22 +167,16 @@ void Renderer::ResetBuffers() {
 }
 
 void Renderer::InitMeshReading() {
-	// SSBO
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[NORMAL]);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, selectedVerticesIDSSBO);
-	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, idAtomic);
-
 	SetCurrentShader(meshReader);
 	modelMatrix = Matrix4::Translation(Vector3(0, 0, -50)) * Matrix4::Scale(Vector3(10, 10, 10));
 	UpdateShaderMatrices();
 	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraPos"), 1, (float*)&camera->GetPosition());
-	glDispatchComputeGroupSizeARB(1, 1, 1, triangle->GetNumVertices(), 1, 1);
+	glDispatchComputeGroupSizeARB(triangle->GetNumFaces(), 1, 1, 3, 1, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
 // Update the shader later to allow faster calculation...
 void Renderer::FinalizeCollectedID() {
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, finalVerticesIDSSBO);
 	SetCurrentShader(idFinalizer);
 	glDispatchComputeGroupSizeARB(1, 1, 1, 1, 1, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
@@ -190,16 +192,12 @@ void Renderer::InitRayTracing() {
 	glUniform2f(glGetUniformLocation(currentShader->GetProgram(), "pixelSize"), 1.0f / width, 1.0f / height);
 	glUniform1f(glGetUniformLocation(currentShader->GetProgram(), "fov"), fov);
 
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[POSITION]);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[COLOUR]);
-
 	UpdateShaderMatrices();
 
 	glDispatchComputeGroupSizeARB(width, height, 1, 1, 1, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);	// makes sure the ssbo is written before
 
 	glBindTexture(GL_TEXTURE_2D, 0);
-	ResetBuffers();
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
@@ -224,4 +222,5 @@ void Renderer::RenderScene() {
 	InitRayTracing();
 	InitFinalScene();
 	SwapBuffers();
+	ResetBuffers();
 }

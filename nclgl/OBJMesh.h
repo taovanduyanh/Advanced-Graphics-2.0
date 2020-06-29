@@ -100,8 +100,6 @@ time lighting tutorial, uncomment both OBJ_USE_NORMALS and OBJ_USE_TANGENTS_BUMP
 #define MTLBUMPMAP		"map_bump"
 #define MTLBUMPMAPALT	"bump"
 
-
-
 /*
 OBJSubMesh structs are used to temporarily keep the data loaded 
 in from the OBJ files, before being parsed into a series of

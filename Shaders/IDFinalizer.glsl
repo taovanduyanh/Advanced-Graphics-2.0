@@ -2,11 +2,11 @@
 #extension GL_ARB_compute_shader : enable
 #extension GL_ARB_compute_variable_group_size : enable
 
-layout(std430, binding = 6) buffer ID {
+layout(std430, binding = 5) buffer ID {
     int idSSBO[];
 };
 
-layout(std430, binding = 7) buffer FinalID {
+layout(std430, binding = 6) buffer FinalID {
     int finalIDSSBO[];
 };
 
