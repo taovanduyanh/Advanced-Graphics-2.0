@@ -106,6 +106,8 @@ Mesh* Mesh::GenerateQuad() {
 		m->facesList[i] = Triangle();
 	}
 
+	//m->normals[3] = Vector3(0.0f, 0.0f, 1.0f);
+
 	// 1st triangle
 	m->facesList[0].verticesIndices[0] = 0;
 	m->facesList[0].verticesIndices[1] = 1;

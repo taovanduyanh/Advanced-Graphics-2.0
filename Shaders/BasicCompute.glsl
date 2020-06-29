@@ -23,14 +23,14 @@ layout(std430, binding = 1) buffer Colours {
     vec4 coloursSSBO[];
 };
 
-layout(std430, binding = 6) buffer FinalID {
-    int finalIDSSBO[];
-};
-
 struct Triangle {
     uint vertIndices[3];
     uint texIndices[3];
     uint normalsIndices[3];
+};
+
+layout(std430, binding = 5) buffer ID {
+    int idSSBO[];
 };
 
 layout(std430, binding = 7) buffer Faces {
@@ -38,7 +38,6 @@ layout(std430, binding = 7) buffer Faces {
 };
 
 layout(local_size_variable) in;
-layout(binding = 0, offset = 0) uniform atomic_uint idCount;
 
 layout(rgba32f) uniform image2D image;
 uniform mat4 modelMatrix;
@@ -126,31 +125,27 @@ float toRadian(float angle) {
 vec4 getFinalColour(ivec2 pixelCoords) {
     vec4 finalColour = vec4(0.0);
 
-    uint numVertices = atomicCounter(idCount);
-
-    if (numVertices < 3) {
-        finalColour = vec4(0.2, 0.2, 0.2, 1.0);
-    }
-    else {
-        // the middle point of the pixel should be in world space now by multiplying with the inverse view matrix..
-        // need to find the middle point of the pixel in world space..
-        mat4 inverseViewMatrix = inverse(viewMatrix);
-        vec3 middlePoint = pixelMiddlePoint(pixelCoords);
-        ray.origin = (inverseViewMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;   
-        ray.direction = normalize((inverseViewMatrix * vec4(middlePoint, 1.0)).xyz - ray.origin);
-
-        // check for intersection between ray and objects
-        for (int i = 0; i < facesSSBO.length(); ++i) {
-            if (rayIntersectsTriangle(ray, facesSSBO[i])) {
-                //finalColour = barycentricCoord.w * vec4(1,0,0,1) +  
-                            //barycentricCoord.v * vec4(0,0,1,1) + 
-                            //barycentricCoord.u * vec4(0,1,0,1);   // this produces the correct colours..
-                finalColour = vec4(barycentricCoord.u, barycentricCoord.v, barycentricCoord.w, 1.0);
-                break;
-            } 
-            else {
-                finalColour = vec4(0.2, 0.2, 0.2, 1.0);
-            }
+    // the middle point of the pixel should be in world space now by multiplying with the inverse view matrix..
+    // need to find the middle point of the pixel in world space..
+    mat4 inverseViewMatrix = inverse(viewMatrix);
+    vec3 middlePoint = pixelMiddlePoint(pixelCoords);
+    ray.origin = (inverseViewMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;   
+    ray.direction = normalize((inverseViewMatrix * vec4(middlePoint, 1.0)).xyz - ray.origin);
+    
+    // check for intersection between ray and objects
+    for (int i = 0; i < idSSBO.length(); ++i) {
+        int triangleIndex = idSSBO[i];
+        if (triangleIndex == -1) {
+            finalColour = vec4(0.2, 0.2, 0.2, 1.0);
+        }
+        else if (rayIntersectsTriangle(ray, facesSSBO[i])) {
+            //finalColour = barycentricCoord.w * vec4(1,0,0,1) +  
+                        //barycentricCoord.v * vec4(0,0,1,1) + 
+                        //barycentricCoord.u * vec4(0,1,0,1);   // this produces the correct colours..
+            return vec4(barycentricCoord.u, barycentricCoord.v, barycentricCoord.w, 1.0);
+        } 
+        else {
+            finalColour = vec4(0.2, 0.2, 0.2, 1.0);
         }
     }
 

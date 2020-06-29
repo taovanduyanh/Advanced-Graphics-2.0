@@ -9,11 +9,10 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 
 	// for geometry shader SHADERDIR"TrianglesExtraction.glsl"
 	meshReader = new Shader(SHADERDIR"AnotherCompute.glsl");
-	idFinalizer = new Shader(SHADERDIR"IDFinalizer.glsl");
 	rayTracerShader = new Shader(SHADERDIR"BasicCompute.glsl");
 	finalShader = new Shader(SHADERDIR"TexturedVertex.glsl", SHADERDIR"TexturedFragment.glsl");
 
-	if (!meshReader->LinkProgram() || !idFinalizer->LinkProgram() || !rayTracerShader->LinkProgram() || !finalShader->LinkProgram()) {
+	if (!meshReader->LinkProgram() || !rayTracerShader->LinkProgram() || !finalShader->LinkProgram()) {
 		return;
 	}
 
@@ -48,22 +47,13 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NORMAL, verticesInfoSSBO[NORMAL]);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-	// Vertex ID (first)
-	collectedID = new GLint[triangle->GetNumVertices()];
-	std::fill_n(collectedID, triangle->GetNumVertices(), -1);
-	glGenBuffers(1, &selectedVerticesIDSSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, selectedVerticesIDSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, triangle->GetNumVertices() * sizeof(GLint), collectedID, GL_STATIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX, selectedVerticesIDSSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-	// Vertex ID (second)
-	finalCollectedID = new GLint[triangle->GetNumVertices()];
-	std::fill_n(finalCollectedID, triangle->GetNumVertices(), -1);
-	glGenBuffers(1, &finalVerticesIDSSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, finalVerticesIDSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, triangle->GetNumVertices() * sizeof(GLint), finalCollectedID, GL_STATIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX + 1, finalVerticesIDSSBO);
+	// Face ID 
+	collectedID = new GLint[triangle->GetNumFaces()];
+	std::fill_n(collectedID, triangle->GetNumFaces(), -1);
+	glGenBuffers(1, &selectedFacesIDSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, selectedFacesIDSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, triangle->GetNumFaces() * sizeof(GLint), collectedID, GL_STATIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX, selectedFacesIDSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	// Faces
@@ -72,15 +62,6 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	glBufferData(GL_SHADER_STORAGE_BUFFER, triangle->GetNumFaces() * sizeof(Mesh::Triangle), triangle->GetMeshFaces(), GL_STATIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX + 2, meshesInfoSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-	// testing triangles counting
-	// atomic..
-	collectedIDCount = 0;
-	glGenBuffers(1, &idAtomic);
-	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, idAtomic);
-	glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), &collectedIDCount, GL_STATIC_DRAW);
-	glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, idAtomic);
-	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
 
 	// Stuffs related to compute shader..
 	// No. of work groups you can create in each dimension
@@ -129,7 +110,8 @@ Renderer::~Renderer(void) {
 	delete[] collectedID;
 
 	glDeleteBuffers(MAX, verticesInfoSSBO);
-	glDeleteBuffers(1, &idAtomic);
+	glDeleteBuffers(1, &selectedFacesIDSSBO);
+	glDeleteBuffers(1, &meshesInfoSSBO);
 	glDeleteTextures(1, &image);
 }
 
@@ -144,31 +126,10 @@ void Renderer::ResetCamera() {
 	camera->SetYaw(0.0f);
 }
 
-void Renderer::ResetAtomicCount() {
-	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, idAtomic);
-	GLuint* p = (GLuint*)glMapBuffer(GL_ATOMIC_COUNTER_BUFFER, GL_WRITE_ONLY);
-	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, idAtomic);
-	*p = 0;		//reset the vertices count..
-	glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
-	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
-}
-
-void Renderer::ResetIDLists() {
-	GLint* p = NULL;
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, selectedVerticesIDSSBO);
-	p = (GLint*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
-	memcpy(p, collectedID, triangle->GetNumVertices() * sizeof(GLint));
-	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, finalVerticesIDSSBO);
-	p = (GLint*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
-	memcpy(p, finalCollectedID, triangle->GetNumVertices() * sizeof(GLint));
-	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-}
-
-void Renderer::ResetBuffers() {
-	ResetIDLists();
-	ResetAtomicCount();
+void Renderer::ResetIDBuffer() {
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, selectedFacesIDSSBO);
+	glClearBufferData(GL_SHADER_STORAGE_BUFFER, GL_R32I, GL_RED_INTEGER, GL_INT, collectedID);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
 void Renderer::InitMeshReading() {
@@ -176,13 +137,6 @@ void Renderer::InitMeshReading() {
 	modelMatrix = Matrix4::Translation(Vector3(0, 0, -50)) * Matrix4::Scale(Vector3(10, 10, 10));
 	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraDirection"), 1, (float*)&(camera->GetPosition() - modelMatrix.GetPositionVector()));
 	glDispatchComputeGroupSizeARB(triangle->GetNumFaces(), 1, 1, 3, 1, 1);
-	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-}
-
-// Update the shader later to allow faster calculation...
-void Renderer::FinalizeCollectedID() {
-	SetCurrentShader(idFinalizer);
-	glDispatchComputeGroupSizeARB(1, 1, 1, 1, 1, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
@@ -202,7 +156,6 @@ void Renderer::InitRayTracing() {
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);	// makes sure the ssbo is written before
 
 	glBindTexture(GL_TEXTURE_2D, 0);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
 void Renderer::InitFinalScene() {
@@ -222,9 +175,8 @@ void Renderer::InitFinalScene() {
 void Renderer::RenderScene() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	InitMeshReading();
-	FinalizeCollectedID();
 	InitRayTracing();
 	InitFinalScene();
 	SwapBuffers();
-	ResetBuffers();
+	ResetIDBuffer();
 }
