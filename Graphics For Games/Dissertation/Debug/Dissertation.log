@@ -1,4 +1,4 @@
 ﻿  Renderer.cpp
-E:\Misc\Diss 2020\Code\Graphics For Games\Dissertation\Renderer.cpp(25,20): warning C4018: '<': signed/unsigned mismatch
-E:\Misc\Diss 2020\Code\Graphics For Games\Dissertation\Renderer.cpp(43,20): warning C4018: '<': signed/unsigned mismatch
+E:\Misc\Diss 2020\Code\Graphics For Games\Dissertation\Renderer.cpp(24,20): warning C4018: '<': signed/unsigned mismatch
+E:\Misc\Diss 2020\Code\Graphics For Games\Dissertation\Renderer.cpp(42,20): warning C4018: '<': signed/unsigned mismatch
   Dissertation.vcxproj -> E:\Misc\Diss 2020\Code\Graphics For Games\Debug\Dissertation.exe

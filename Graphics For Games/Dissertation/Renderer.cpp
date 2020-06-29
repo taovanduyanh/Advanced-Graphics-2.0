@@ -6,7 +6,6 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	//dynamic_cast<OBJMesh*>(triangle)->LoadOBJMesh(MESHDIR"cube.obj");
 	sceneQuad = Mesh::GenerateQuad();
 	camera = new Camera();
-	camera->SetPosition(Vector3(0, 0, 3));
 
 	// for geometry shader SHADERDIR"TrianglesExtraction.glsl"
 	meshReader = new Shader(SHADERDIR"AnotherCompute.glsl");
@@ -139,6 +138,12 @@ void Renderer::UpdateScene(float msec) {
 	viewMatrix = camera->BuildViewMatrix();
 }
 
+void Renderer::ResetCamera() {
+	camera->SetPosition(Vector3(0.0f, 0.0f, 0.0f));
+	camera->SetPitch(0.0f);
+	camera->SetYaw(0.0f);
+}
+
 void Renderer::ResetAtomicCount() {
 	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, idAtomic);
 	GLuint* p = (GLuint*)glMapBuffer(GL_ATOMIC_COUNTER_BUFFER, GL_WRITE_ONLY);
@@ -169,8 +174,7 @@ void Renderer::ResetBuffers() {
 void Renderer::InitMeshReading() {
 	SetCurrentShader(meshReader);
 	modelMatrix = Matrix4::Translation(Vector3(0, 0, -50)) * Matrix4::Scale(Vector3(10, 10, 10));
-	UpdateShaderMatrices();
-	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraPos"), 1, (float*)&camera->GetPosition());
+	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraDirection"), 1, (float*)&(camera->GetPosition() - modelMatrix.GetPositionVector()));
 	glDispatchComputeGroupSizeARB(triangle->GetNumFaces(), 1, 1, 3, 1, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }

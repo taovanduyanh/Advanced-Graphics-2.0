@@ -17,6 +17,8 @@ public:
 	virtual void UpdateScene(float msec);
 	virtual void RenderScene();
 
+	void ResetCamera();
+
 protected:
 	void InitMeshReading();
 	void FinalizeCollectedID();

@@ -20,17 +20,15 @@ layout(std430, binding = 7) buffer Faces {
     Triangle facesSSBO[];
 };
 
-uniform mat4 modelMatrix;
-uniform vec3 cameraPos;
+uniform vec3 cameraDirection;
 
 layout(local_size_variable) in;
 layout(binding = 0, offset = 0) uniform atomic_uint idCount;
 
 void main() {
-    vec3 cameraDirection = normalize(cameraPos - modelMatrix[3].xyz);
     vec3 vertexNormal = normalize(normalsSSBO[facesSSBO[gl_WorkGroupID.x].normalsIndices[gl_LocalInvocationID.x]]);
 
-    if (dot(cameraDirection, vertexNormal) < 0.0) {
+    if (dot(normalize(cameraDirection), vertexNormal) < 0.0) {
         idSSBO[gl_LocalInvocationID.x] = int(facesSSBO[gl_WorkGroupID.x].vertIndices[gl_LocalInvocationID.x]);
         atomicCounterIncrement(idCount);
     }

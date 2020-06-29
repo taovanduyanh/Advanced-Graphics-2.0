@@ -63,7 +63,7 @@ void main() {
 
 /**
 Moller - Trumbore algorithm
-Don't need to check for the determinator and t values since the Mesh reader already handles the cases behind + parallel
+Don't need to check for the determinatorsince the Mesh reader already handles the cases behind + parallel?
 */
 bool rayIntersectsTriangle(Ray ray, Triangle triangle) {
     // three vertices of the current triangle
@@ -76,7 +76,6 @@ bool rayIntersectsTriangle(Ray ray, Triangle triangle) {
     vec3 pVec = cross(ray.direction, b);
     float determinator = dot(a, pVec);
 
-    // the nanimg convension is not nice.. 
     float invDet = 1 / determinator;
 
     vec3 tVec = ray.origin - v0;
@@ -94,6 +93,12 @@ bool rayIntersectsTriangle(Ray ray, Triangle triangle) {
     barycentricCoord.w = 1 - barycentricCoord.u - barycentricCoord.v;
 
     ray.t = invDet * dot(b, qVec);
+    
+    // if t is lower than the epsilon value then the triangle is behind the ray
+    // i.e. the ray should not be able to intersect with the triangle
+    if (ray.t < EPSILON) {
+        return false;
+    }
 
     return true;
 }
