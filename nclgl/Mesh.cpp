@@ -100,6 +100,8 @@ Mesh* Mesh::GenerateQuad() {
 		m->tangents[i] = Vector3(1.0f, 0.0f, 0.0f);
 	}
 
+	m->normals[3] = Vector3(-1.0f, 0.0f, 0.0f);
+
 	// Faces..
 	m->facesList = new Triangle[m->numFaces];
 	for (int i = 0; i < m->numFaces; ++i) {

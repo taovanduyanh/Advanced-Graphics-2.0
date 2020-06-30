@@ -29,7 +29,7 @@ void main() {
     for (int i = 0; i < 3; ++i) {
         vec3 vertexNormal = normalize(normalsSSBO[facesSSBO[gl_GlobalInvocationID.x].normalsIndices[i]]);
     
-        if (dot(normalize(cameraDirection), vertexNormal) < 0.0) {
+        if (dot(normalize(cameraDirection), vertexNormal) <= 0.0) {
             ++numPassed; 
         }
     }
