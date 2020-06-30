@@ -4,7 +4,7 @@
 #include "Renderer.h"
 
 int main() {
-	Window w("Advanced Graphics", 800, 600, false);
+	Window w("Ray Tracing - Tao Van Duy Anh", 800, 600, false);
 	if (!w.HasInitialised()) {
 		return -1;
 	}
@@ -20,6 +20,10 @@ int main() {
 	while (w.UpdateWindow() && !Window::GetKeyboard()->KeyDown(KEYBOARD_ESCAPE)) {
 		renderer.UpdateScene(w.GetTimer()->GetTimedMS());
 		renderer.RenderScene();
+
+		if (Window::GetKeyboard()->KeyDown(KEYBOARD_R)) {
+			renderer.ResetCamera();
+		}
 	}
 
 	return 0;

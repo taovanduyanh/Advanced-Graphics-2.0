@@ -1,14 +1,9 @@
-#version 430 core
+#version 460 core
 #extension GL_ARB_compute_shader : enable
 #extension GL_ARB_compute_variable_group_size : enable
 
 #define PI 3.1415926538
-
-layout(std430, binding = 0) buffer Colours {
-    vec4 colourSSBO[];
-};
-
-layout(local_size_variable) in;
+#define EPSILON 0.0000001
 
 struct Ray {
     vec3 origin;
@@ -16,116 +11,144 @@ struct Ray {
     float t;
 } ray, shadowRay;
 
+struct BarycentricCoord {
+    float u, v, w;
+} barycentricCoord;
+
+layout(std430, binding = 0) buffer Positions {
+    vec3 posSSBO[];
+};
+
+layout(std430, binding = 1) buffer Colours {
+    vec4 coloursSSBO[];
+};
+
 struct Triangle {
-    vec3 vertices[3];
-    vec4 colour;
-    vec3 normal;
-} triangle;
+    uint vertIndices[3];
+    uint texIndices[3];
+    uint normalsIndices[3];
+};
+
+layout(std430, binding = 5) buffer ID {
+    int idSSBO[];
+};
+
+layout(std430, binding = 7) buffer Faces {
+    Triangle facesSSBO[];
+};
+
+layout(local_size_variable) in;
 
 layout(rgba32f) uniform image2D image;
-uniform sampler2D depthTex;
-uniform mat4 projMatrix;
+uniform mat4 modelMatrix;
 uniform mat4 viewMatrix;
 uniform vec2 pixelSize;
 uniform float fov;
-uniform vec3 cameraPos;
 
-bool intersect(Ray ray, Triangle triangle);
-bool pointIsInTrianglePlane(vec3 point, Triangle triangle);
+float toRadian(float angle);
+bool rayIntersectsTriangle(Ray ray, Triangle triangle);
+vec3 pixelMiddlePoint(ivec2 pixelCoords);
+vec4 getFinalColour(ivec2 pixelCoords);
 
 // NOTE: Remember to remove the unecessary comment later
 
 void main() {
-    /**
-    vec2 texCoord = gl_GlobalInvocationID.xy * pixelSize;
-    vec4 colour = texture(depthTex, texCoord);
-    uint index = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * gl_NumWorkGroups.x;
-    colourSSBO[index] = colour * vec4(1.0, 0.0, 0.5, 1.0);
-    */
-
-    // setting a triangle for testing..
-    triangle.vertices[0] = vec3(0.0, 0.5, -2.0);
-    triangle.vertices[1] = vec3(0.5, -0.5, -2.0);
-    triangle.vertices[2] = vec3(-0.5, -0.5, -2.0);
-    triangle.colour = vec4(1.0, 0.0, 0.0, 1.0);
-    triangle.normal = normalize(cross(triangle.vertices[1] - triangle.vertices[0], triangle.vertices[2] - triangle.vertices[0]));
-
     // coordinate in pixels
-    // 1st need to find the middle point of the pixel in world space..
-    ivec2 imageSize = imageSize(image); // x = width; y = height
-    float imageRatio = imageSize.x / imageSize.y;
     ivec2 pixelCoords = ivec2(gl_GlobalInvocationID.xy);
-    vec3 middlePoint = vec3((pixelCoords.x + pixelSize.x * 0.5) * pixelSize.x, (pixelCoords.y + pixelSize.y * 0.5) * pixelSize.y, -1.0); 
-    //middlePoint.z = texture(depthTex, pixelCoords.xy).r;
-
-    // comment this part later..
-    //mat4 inverseProjView = inverse(projMatrix * viewMatrix);
-    mat4 inverseViewMatrix = inverse(viewMatrix);
-    float angleInRadian = fov * PI * 0.5 / 180.0;
-    middlePoint.x = (middlePoint.x * 2.0 - 1.0) * imageRatio * tan(angleInRadian);
-    middlePoint.y = (1.0 - 2.0 * middlePoint.y) * tan(angleInRadian);  // have to do this, otherwise the image will be flipped 
-
-    //vec4 clip = inverseProjView * vec4(middlePoint, 1.0);
-    //middlePoint = clip.xyz / clip.w;    // the middle point of the pixel should be in world space now..
-    ray.origin = (inverseViewMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
-    ray.direction = normalize((inverseViewMatrix * vec4(middlePoint, 1.0)).xyz - cameraPos);
-
-    vec4 finalColour = vec4(0.0);
-
-    // check for intersection between ray and objects
-    if (!intersect(ray, triangle)) {
-        finalColour = vec4(0.2, 0.2, 0.2, 1.0);
-    } 
-    else {
-        finalColour = triangle.colour;
-    }
-
+    vec4 finalColour = getFinalColour(pixelCoords);
     imageStore(image, pixelCoords, finalColour);
-    memoryBarrierShared();
+    memoryBarrierImage();
+    barrier();
 }
 
-bool intersect(Ray ray, Triangle triangle) {
-    // checking for parallel case
-    // => if a triangle's normal and a ray are parallel, then there is no intersection
-    // aka the dot product between these two equals to zero
-    float denominator = dot(triangle.normal, ray.direction);
+/**
+Moller - Trumbore algorithm
+Don't need to check for the determinatorsince the Mesh reader already handles the cases behind + parallel?
+*/
+bool rayIntersectsTriangle(Ray ray, Triangle triangle) {
+    // three vertices of the current triangle
+    vec3 v0 = (modelMatrix * vec4(posSSBO[triangle.vertIndices[0]], 1.0)).xyz;
+    vec3 v1 = (modelMatrix * vec4(posSSBO[triangle.vertIndices[1]], 1.0)).xyz;
+    vec3 v2 = (modelMatrix * vec4(posSSBO[triangle.vertIndices[2]], 1.0)).xyz;
 
-    if (denominator == 0) {
+    vec3 a = v1 - v0;
+    vec3 b = v2 - v0;
+    vec3 pVec = cross(ray.direction, b);
+    float determinator = dot(a, pVec);
+
+    float invDet = 1 / determinator;
+
+    vec3 tVec = ray.origin - v0;
+    barycentricCoord.u = invDet * dot(tVec, pVec);
+    if (barycentricCoord.u < 0 || barycentricCoord.u > 1) {
         return false;
     }
 
-    denominator = 1 / denominator;
-    float d = dot(triangle.normal, triangle.vertices[0]);
-    ray.t = (dot(triangle.normal, ray.origin) + d) * denominator;
-
-    if (ray.t <= 0) {
+    vec3 qVec = cross(tVec, a);
+    barycentricCoord.v = invDet * dot(ray.direction, qVec);
+    if (barycentricCoord.v < 0 || barycentricCoord.u + barycentricCoord.v > 1) {
         return false;
     }
     
-    vec3 hitPoint = ray.origin + ray.t * ray.direction;
-    if (!pointIsInTrianglePlane(hitPoint, triangle)) {
+    barycentricCoord.w = 1 - barycentricCoord.u - barycentricCoord.v;
+
+    ray.t = invDet * dot(b, qVec);
+    
+    // if t is lower than the epsilon value then the triangle is behind the ray
+    // i.e. the ray should not be able to intersect with the triangle
+    if (ray.t < EPSILON) {
         return false;
     }
 
     return true;
 }
 
-bool pointIsInTrianglePlane(vec3 point, Triangle triangle) {
-    vec3 e0 = triangle.vertices[1] - triangle.vertices[0];
-    vec3 e1 = triangle.vertices[2] - triangle.vertices[1];
-    vec3 e2 = triangle.vertices[0] - triangle.vertices[2];
+vec3 pixelMiddlePoint(ivec2 pixelCoords) {
+    ivec2 imageSize = imageSize(image); // x = width; y = height
+    float imageRatio = imageSize.x / imageSize.y;
+    vec3 middlePoint = vec3((pixelCoords.x + 0.5) * pixelSize.x, (pixelCoords.y + 0.5) * pixelSize.y, -1.0); 
 
-    vec3 c0 = point - triangle.vertices[0];
-    vec3 c1 = point - triangle.vertices[1];
-    vec3 c2 = point - triangle.vertices[2];
+    // comment this part later..
+    float angleInRadian = toRadian(fov) * 0.5;
+    middlePoint.x = (middlePoint.x * 2.0 - 1.0) * imageRatio * tan(angleInRadian);
+    middlePoint.y = (middlePoint.y * 2.0 - 1.0) * tan(angleInRadian);  // do the other way to flip it..
 
-    bool condition0 = dot(triangle.normal, cross(e0, c0)) > 0;
-    bool condition1 = dot(triangle.normal, cross(e1, c1)) > 0;
-    bool condition2 = dot(triangle.normal, cross(e2, c2)) > 0;
+    return middlePoint;
+}
 
-    if (condition0 && condition1 && condition2) {
-        return true;
+/**
+Convert degree to radian
+*/
+float toRadian(float angle) {
+    return angle * PI / 180.0;
+}
+
+vec4 getFinalColour(ivec2 pixelCoords) {
+    vec4 finalColour = vec4(0.0);
+
+    // the middle point of the pixel should be in world space now by multiplying with the inverse view matrix..
+    // need to find the middle point of the pixel in world space..
+    mat4 inverseViewMatrix = inverse(viewMatrix);
+    vec3 middlePoint = pixelMiddlePoint(pixelCoords);
+    ray.origin = (inverseViewMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;   
+    ray.direction = normalize((inverseViewMatrix * vec4(middlePoint, 1.0)).xyz - ray.origin);
+    
+    // check for intersection between ray and objects
+    for (int i = 0; i < idSSBO.length(); ++i) {
+        int triangleIndex = idSSBO[i];
+        if (triangleIndex == -1) {
+            finalColour = vec4(0.2, 0.2, 0.2, 1.0);
+        }
+        else if (rayIntersectsTriangle(ray, facesSSBO[triangleIndex])) {
+            //finalColour = barycentricCoord.w * vec4(1,0,0,1) +  
+                        //barycentricCoord.v * vec4(0,0,1,1) + 
+                        //barycentricCoord.u * vec4(0,1,0,1);   // this produces the correct colours..
+            return vec4(barycentricCoord.u, barycentricCoord.v, barycentricCoord.w, 1.0);
+        } 
+        else {
+            finalColour = vec4(0.2, 0.2, 0.2, 1.0);
+        }
     }
 
-    return false;
+    return finalColour;
 }

@@ -3,6 +3,11 @@
 #include "../../nclgl/Camera.h"
 #include "../../nclgl/OBJMesh.h"
 #include "../../nclgl/HeightMap.h"
+#include <algorithm>
+
+enum VertexInfo {
+	POSITION, COLOUR, TEX_COORD, NORMAL, TANGENT, MAX
+};
 
 class Renderer : public OGLRenderer {
 public:
@@ -12,25 +17,37 @@ public:
 	virtual void UpdateScene(float msec);
 	virtual void RenderScene();
 
+	void ResetCamera();
+
 protected:
-	Mesh* mesh;
+	void InitMeshReading();
+	void InitRayTracing();
+	void InitFinalScene();
+
+	void ResetIDBuffer();
+
+	Mesh* triangle;
 	Mesh* sceneQuad;
 	Camera* camera;
 
+	// Max number of work groups, work items and amount of items/invocations allow in a work group
+	GLint maxWorkGroups[3];
+	GLint maxWorkGroupSizes[3];
+	GLint maxWorkItemsPerGroup;
+
 	// testing..
 	float fov;
-	Shader* sceneShader;
-	Shader* computeShader;
+	Shader* meshReader;	
+	Shader* rayTracerShader;
 	Shader* finalShader;
 
-	GLuint sceneFBO;
-	GLuint colourTex;
-	GLuint depthTex;
 	GLuint image;
 
-	Vector4* colours;
-	GLuint colourSSBO;
+	// pre-updated vertices info
+	GLuint verticesInfoSSBO[MAX];
 
-	GLuint trianglesCount;
-	GLuint trianglesAtomic;
+	// the selected vertices ID
+	GLuint meshesInfoSSBO;
+	GLuint selectedFacesIDSSBO;
+	GLint* collectedID;
 };

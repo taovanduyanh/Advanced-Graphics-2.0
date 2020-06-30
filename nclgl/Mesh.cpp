@@ -17,6 +17,9 @@ Mesh::Mesh(void) {
 	normals = NULL;
 	tangents = NULL;
 	type = GL_TRIANGLES;
+
+	numFaces = 0;
+	facesList = NULL;
 }
 
 Mesh::~Mesh(void) {
@@ -30,10 +33,12 @@ glDeleteVertexArrays(1, &arrayObject);
 	delete[] normals;
 	delete[] tangents;
 	delete[] indices;
+	delete[] facesList;
 }
 
 Mesh* Mesh::GenerateTriangle() {
 	Mesh * m = new Mesh();
+	m->numFaces = 1;
 	m->numVertices = 3;
 
 	m->vertices = new Vector3[m->numVertices];
@@ -51,15 +56,28 @@ Mesh* Mesh::GenerateTriangle() {
 	m->colours[1] = Vector4(0.0f, 1.0f, 0.0f, 1.0f);
 	m->colours[2] = Vector4(0.0f, 0.0f, 1.0f, 1.0f);
 
+	// Settings the normals and face here..
+	// NOTE: this is just simply for a single triangle..
+	m->normals = new Vector3[m->numVertices];
+	m->facesList = new Triangle[m->numFaces];
+	m->facesList[0] = Triangle();
+	for (int i = 0; i < m->numVertices; ++i) {
+		m->normals[i] = Vector3(0.0f, 0.0f, -1.0f);
+		m->facesList[0].verticesIndices[i] = i;
+		m->facesList[0].texCoordsIndices[i] = i;
+		m->facesList[0].normalsIndices[i] = i;
+	}
+
 	m->BufferData();
 	return m;
 }
 
 Mesh* Mesh::GenerateQuad() {
 	Mesh* m = new Mesh();
+	m->numFaces = 2;
 	m->numVertices = 4;
 	m->type = GL_TRIANGLE_STRIP;
-
+	
 	m->vertices = new Vector3[m->numVertices];
 	m->textureCoords = new Vector2[m->numVertices];
 	m->colours = new Vector4[m->numVertices];
@@ -80,6 +98,26 @@ Mesh* Mesh::GenerateQuad() {
 		m->colours[i] = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
 		m->normals[i] = Vector3(0.0f, 0.0f, -1.0f);
 		m->tangents[i] = Vector3(1.0f, 0.0f, 0.0f);
+	}
+
+	// Faces..
+	m->facesList = new Triangle[m->numFaces];
+	for (int i = 0; i < m->numFaces; ++i) {
+		m->facesList[i] = Triangle();
+	}
+
+	// 1st triangle
+	for (int i = 0; i < 3; ++i) {
+		m->facesList[0].verticesIndices[i] = i;
+		m->facesList[0].texCoordsIndices[i] = i;
+		m->facesList[0].normalsIndices[i] = i;
+	}
+
+	// 2nd triangle
+	for (int i = 0, j = 1; i < 3; ++i, ++j) {
+		m->facesList[1].verticesIndices[i] = j;
+		m->facesList[1].texCoordsIndices[i] = j;
+		m->facesList[1].normalsIndices[i] = j;
 	}
 
 	m->BufferData();

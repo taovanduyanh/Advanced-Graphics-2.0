@@ -5,7 +5,7 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	heightMap = new HeightMap(TEXTUREDIR"terrain.raw");
 
 	currentShader = new Shader(SHADERDIR"TexturedVertex.glsl", SHADERDIR"TexturedFragment.glsl");
-	heightMap->SetTexutre(SOIL_load_OGL_texture(TEXTUREDIR"america.jpg", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, 0));
+	heightMap->SetTexutre(SOIL_load_OGL_texture(TEXTUREDIR"Barren Reds.jpg", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, 0));
 
 	if (!currentShader->LinkProgram() || !heightMap->GetTexture()) {
 		return;
@@ -34,7 +34,7 @@ void Renderer::RenderScene() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glUseProgram(currentShader->GetProgram());
-
+	modelMatrix = Matrix4::Rotation(180, Vector3(1, 0, 0));
 	UpdateShaderMatrices();
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "diffuseTex"), 0);
 
