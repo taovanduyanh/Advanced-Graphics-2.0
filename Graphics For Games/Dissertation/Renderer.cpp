@@ -136,7 +136,7 @@ void Renderer::InitMeshReading() {
 	SetCurrentShader(meshReader);
 	modelMatrix = Matrix4::Translation(Vector3(0, 0, -50)) * Matrix4::Scale(Vector3(10, 10, 10));
 	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraDirection"), 1, (float*)&(camera->GetPosition() - modelMatrix.GetPositionVector()));
-	glDispatchComputeGroupSizeARB(triangle->GetNumFaces(), 1, 1, 3, 1, 1);
+	glDispatchComputeGroupSizeARB(1, 1, 1, triangle->GetNumFaces(), 1, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
@@ -153,7 +153,7 @@ void Renderer::InitRayTracing() {
 	UpdateShaderMatrices();
 
 	glDispatchComputeGroupSizeARB(width, height, 1, 1, 1, 1);
-	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);	// makes sure the ssbo is written before
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);	// makes sure the ssbo/image is written before
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 }

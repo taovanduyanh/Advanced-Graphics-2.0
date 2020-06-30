@@ -1,4 +1,4 @@
-#version 430 core
+#version 460 core
 #extension GL_ARB_compute_shader : enable
 #extension GL_ARB_compute_variable_group_size : enable
 
@@ -57,7 +57,8 @@ void main() {
     ivec2 pixelCoords = ivec2(gl_GlobalInvocationID.xy);
     vec4 finalColour = getFinalColour(pixelCoords);
     imageStore(image, pixelCoords, finalColour);
-    memoryBarrierShared();
+    memoryBarrierImage();
+    barrier();
 }
 
 /**
@@ -138,7 +139,7 @@ vec4 getFinalColour(ivec2 pixelCoords) {
         if (triangleIndex == -1) {
             finalColour = vec4(0.2, 0.2, 0.2, 1.0);
         }
-        else if (rayIntersectsTriangle(ray, facesSSBO[i])) {
+        else if (rayIntersectsTriangle(ray, facesSSBO[triangleIndex])) {
             //finalColour = barycentricCoord.w * vec4(1,0,0,1) +  
                         //barycentricCoord.v * vec4(0,0,1,1) + 
                         //barycentricCoord.u * vec4(0,1,0,1);   // this produces the correct colours..

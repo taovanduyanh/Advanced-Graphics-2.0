@@ -106,22 +106,19 @@ Mesh* Mesh::GenerateQuad() {
 		m->facesList[i] = Triangle();
 	}
 
-	//m->normals[3] = Vector3(0.0f, 0.0f, 1.0f);
-
 	// 1st triangle
-	m->facesList[0].verticesIndices[0] = 0;
-	m->facesList[0].verticesIndices[1] = 1;
-	m->facesList[0].verticesIndices[2] = 2;
-	m->facesList[0].normalsIndices[0] = 0;
-	m->facesList[0].normalsIndices[1] = 1;
-	m->facesList[0].normalsIndices[2] = 2;
+	for (int i = 0; i < 3; ++i) {
+		m->facesList[0].verticesIndices[i] = i;
+		m->facesList[0].texCoordsIndices[i] = i;
+		m->facesList[0].normalsIndices[i] = i;
+	}
 
-	m->facesList[1].verticesIndices[0] = 1;
-	m->facesList[1].verticesIndices[1] = 2;
-	m->facesList[1].verticesIndices[2] = 3;
-	m->facesList[1].normalsIndices[0] = 1;
-	m->facesList[1].normalsIndices[1] = 2;
-	m->facesList[1].normalsIndices[2] = 3;
+	// 2nd triangle
+	for (int i = 0, j = 1; i < 3; ++i, ++j) {
+		m->facesList[1].verticesIndices[i] = j;
+		m->facesList[1].texCoordsIndices[i] = j;
+		m->facesList[1].normalsIndices[i] = j;
+	}
 
 	m->BufferData();
 	return m;

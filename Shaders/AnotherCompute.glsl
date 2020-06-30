@@ -1,4 +1,4 @@
-#version 430 core
+#version 460 core
 #extension GL_ARB_compute_shader : enable
 #extension GL_ARB_compute_variable_group_size : enable
 
@@ -23,17 +23,19 @@ layout(std430, binding = 7) buffer Faces {
 uniform vec3 cameraDirection;
 
 layout(local_size_variable) in;
-shared uint numNormalsPassed;
+//shared uint numNormalsPassed;
 
 void main() {
-    vec3 vertexNormal = normalize(normalsSSBO[facesSSBO[gl_WorkGroupID.x].normalsIndices[gl_LocalInvocationID.x]]);
+    uint numPassed = 0;
+    for (int i = 0; i < 3; ++i) {
+        vec3 vertexNormal = normalize(normalsSSBO[facesSSBO[gl_GlobalInvocationID.x].normalsIndices[i]]);
     
-    if (dot(normalize(cameraDirection), vertexNormal) < 0.0) {
-        atomicAdd(numNormalsPassed, 1);
+        if (dot(normalize(cameraDirection), vertexNormal) < 0.0) {
+            ++numPassed; 
+        }
     }
-    memoryBarrierShared();
 
-    if (numNormalsPassed == 3) {
-        idSSBO[gl_WorkGroupID.x] = int(gl_WorkGroupID.x); 
+    if (numPassed == 3) {
+        idSSBO[gl_GlobalInvocationID.x] = int(gl_GlobalInvocationID.x); 
     }
 }
