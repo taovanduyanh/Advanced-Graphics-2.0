@@ -2,6 +2,8 @@
 
 Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	triangle = Mesh::GenerateQuad();
+	triangle->SetTexutre(SOIL_load_OGL_texture(TEXTUREDIR"brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, 0));
+
 	//triangle = new OBJMesh();
 	//dynamic_cast<OBJMesh*>(triangle)->LoadOBJMesh(MESHDIR"cube.obj");
 	sceneQuad = Mesh::GenerateQuad();
@@ -34,6 +36,13 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[COLOUR]);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, triangle->GetNumVertices() * sizeof(Vector4), triangle->GetColours(), GL_STATIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, COLOUR, verticesInfoSSBO[COLOUR]);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	// Texture coordinates 
+	glGenBuffers(1, &verticesInfoSSBO[TEX_COORD]);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[TEX_COORD]);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, triangle->GetNumVertices() * sizeof(Vector2), triangle->GetTexCoords(), GL_STATIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, TEX_COORD, verticesInfoSSBO[TEX_COORD]);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	// Normals
@@ -147,6 +156,10 @@ void Renderer::InitRayTracing() {
 	// assume that we are using texture0
 	glBindTexture(GL_TEXTURE_2D, image);
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "image"), 0);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, triangle->GetTexture());
+	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "diffuse"), 1);
+	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "useTexture"), triangle->GetTexture());
 	glUniform2f(glGetUniformLocation(currentShader->GetProgram(), "pixelSize"), 1.0f / width, 1.0f / height);
 	glUniform1f(glGetUniformLocation(currentShader->GetProgram(), "fov"), fov);
 

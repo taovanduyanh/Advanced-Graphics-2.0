@@ -23,6 +23,10 @@ layout(std430, binding = 1) buffer Colours {
     vec4 coloursSSBO[];
 };
 
+layout(std430, binding = 2) buffer TextureCoords {
+    vec2 texCoordsSSBO[];
+};
+
 struct Triangle {
     uint vertIndices[3];
     uint texIndices[3];
@@ -40,6 +44,8 @@ layout(std430, binding = 7) buffer Faces {
 layout(local_size_variable) in;
 
 layout(rgba32f) uniform image2D image;
+uniform sampler2D diffuse;
+uniform int useTexture;
 uniform mat4 modelMatrix;
 uniform mat4 viewMatrix;
 uniform vec2 pixelSize;
@@ -140,10 +146,17 @@ vec4 getFinalColour(ivec2 pixelCoords) {
             finalColour = vec4(0.2, 0.2, 0.2, 1.0);
         }
         else if (rayIntersectsTriangle(ray, facesSSBO[triangleIndex])) {
-            //finalColour = barycentricCoord.w * vec4(1,0,0,1) +  
-                        //barycentricCoord.v * vec4(0,0,1,1) + 
-                        //barycentricCoord.u * vec4(0,1,0,1);   // this produces the correct colours..
-            return vec4(barycentricCoord.u, barycentricCoord.v, barycentricCoord.w, 1.0);
+            if (useTexture > 0) {
+                vec2 tc0 = texCoordsSSBO[facesSSBO[triangleIndex].texIndices[0]];
+                vec2 tc1 = texCoordsSSBO[facesSSBO[triangleIndex].texIndices[1]];
+                vec2 tc2 = texCoordsSSBO[facesSSBO[triangleIndex].texIndices[2]];
+                vec2 texCoord = barycentricCoord.w * tc0 + barycentricCoord.u * tc1 + barycentricCoord.v * tc2;
+                finalColour = texture(diffuse, texCoord);
+                return finalColour;
+            }
+            else {
+                return vec4(barycentricCoord.u, barycentricCoord.v, barycentricCoord.w, 1.0);
+            }
         } 
         else {
             finalColour = vec4(0.2, 0.2, 0.2, 1.0);

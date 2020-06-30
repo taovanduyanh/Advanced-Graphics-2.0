@@ -23,7 +23,6 @@ layout(std430, binding = 7) buffer Faces {
 uniform vec3 cameraDirection;
 
 layout(local_size_variable) in;
-//shared uint numNormalsPassed;
 
 void main() {
     uint numPassed = 0;
