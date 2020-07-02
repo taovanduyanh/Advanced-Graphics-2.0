@@ -159,8 +159,8 @@ vec4 getFinalColour(ivec2 pixelCoords) {
                 return finalColour;
             }
             else {
-                //return vec4(barycentricCoord.u, barycentricCoord.v, barycentricCoord.w, 1.0);
-                return vec4(1.0, 1.0, 1.0, 1.0);
+                return vec4(barycentricCoord.u, barycentricCoord.v, barycentricCoord.w, 1.0);
+                //return vec4(1.0, 1.0, 1.0, 1.0);
             }
         } 
         else {

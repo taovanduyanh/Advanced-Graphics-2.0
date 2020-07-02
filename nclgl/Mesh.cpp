@@ -136,14 +136,14 @@ Mesh* Mesh::GenerateCube() {
 	m->normals = new Vector3[6];
 	m->tangents = new Vector3[6];
 
-	m->vertices[0] = Vector3(-1.0f, -0.003248f, 1.0f);
-	m->vertices[1] = Vector3(1.0f, -0.003248f, 1.0f);
-	m->vertices[2] = Vector3(-1.0f, 1.996752f, 1.0f);
-	m->vertices[3] = Vector3(1.0f, 1.996752f, 1.0f);
-	m->vertices[4] = Vector3(1.0f, -0.003248f, -1.0f);
-	m->vertices[5] = Vector3(-1.0f, -0.003248f, -1.0f);
-	m->vertices[6] = Vector3(1.0f, 1.996752f, -1.0f);
-	m->vertices[7] = Vector3(-1.0f, 1.996752f, -1.0f);
+	m->vertices[0] = Vector3(1.0f, -0.003248f, -1.0f);
+	m->vertices[1] = Vector3(-1.0f, -0.003248f, -1.0f);
+	m->vertices[2] = Vector3(1.0f, 1.996752f, -1.0f);
+	m->vertices[3] = Vector3(-1.0f, 1.996752f, -1.0f);
+	m->vertices[4] = Vector3(-1.0f, -0.003248f, 1.0f);
+	m->vertices[5] = Vector3(1.0f, -0.003248f, 1.0f);
+	m->vertices[6] = Vector3(-1.0f, 1.996752f, 1.0f);
+	m->vertices[7] = Vector3(1.0f, 1.996752f, 1.0f);
 
 	m->textureCoords[0] = Vector2(1.0f, 0.0f);
 	m->textureCoords[1] = Vector2(0.0f, 0.0f);
@@ -165,12 +165,12 @@ Mesh* Mesh::GenerateCube() {
 		m->colours[i] = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
 	}
 
-	m->normals[0] = Vector3(0.0f, 0.0f, 1.0f);
-	m->normals[1] = Vector3(0.0f, 0.0f, -1.0f);
-	m->normals[2] = Vector3(-1.0f, 0.0f, 0.0f);
-	m->normals[3] = Vector3(1.0f, 0.0f, 0.0f);
-	m->normals[4] = Vector3(0.0f, 1.0f, 1.0f);
-	m->normals[5] = Vector3(0.0f, -1.0f, 1.0f);
+	m->normals[0] = Vector3(0.0f, 0.0f, -1.0f);
+	m->normals[1] = Vector3(0.0f, 0.0f, 1.0f);
+	m->normals[2] = Vector3(1.0f, 0.0f, 0.0f);
+	m->normals[3] = Vector3(-1.0f, 0.0f, 0.0f);
+	m->normals[4] = Vector3(0.0f, 1.0f, 0.0f);
+	m->normals[5] = Vector3(0.0f, -1.0f, 0.0f);
 
 	// Faces..
 	m->facesList = new Triangle[m->numFaces];
