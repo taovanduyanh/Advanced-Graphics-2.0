@@ -11,8 +11,8 @@ public:
 	static void CreateCube() {
 		OBJMesh* temp = new OBJMesh();
 		temp->LoadOBJMesh(MESHDIR"cube.obj");
-		cube->SetTexutre(SOIL_load_OGL_texture("../../../Textures/brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, 0));
 		cube = temp;
+		cube->SetTexutre(SOIL_load_OGL_texture("E:/Misc/Diss 2020/Code/Textures/brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, 0));
 		if (!cube->GetTexture()) {
 			return;
 		}

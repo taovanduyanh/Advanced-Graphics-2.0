@@ -2,7 +2,7 @@
 
 Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	triangle = Mesh::GenerateCube();
-	//triangle->SetTexutre(SOIL_load_OGL_texture(TEXTUREDIR"brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, 0));
+	triangle->SetTexutre(SOIL_load_OGL_texture(TEXTUREDIR"brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
 	//SetTextureRepeating(triangle->GetTexture(), true);
 
 	//triangle = new OBJMesh();
@@ -71,7 +71,7 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	glGenBuffers(1, &meshesInfoSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, meshesInfoSSBO);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, triangle->GetNumFaces() * sizeof(Mesh::Triangle), triangle->GetMeshFaces(), GL_STATIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX + 2, meshesInfoSSBO);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX + 1, meshesInfoSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	// Stuffs related to compute shader..

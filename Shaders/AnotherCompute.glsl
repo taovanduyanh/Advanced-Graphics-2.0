@@ -16,7 +16,7 @@ layout(std430, binding = 5) buffer ID {
     int idSSBO[];
 };
 
-layout(std430, binding = 7) buffer Faces {
+layout(std430, binding = 6) buffer Faces {
     Triangle facesSSBO[];
 };
 
@@ -25,10 +25,15 @@ uniform vec3 cameraDirection;
 layout(local_size_variable) in;
 
 void main() {
-    vec3 a = posSSBO[facesSSBO[gl_GlobalInvocationID.x].vertIndices[1]] - posSSBO[facesSSBO[gl_GlobalInvocationID.x].vertIndices[0]];
-    vec3 b = posSSBO[facesSSBO[gl_GlobalInvocationID.x].vertIndices[2]] - posSSBO[facesSSBO[gl_GlobalInvocationID.x].vertIndices[0]];
-    vec3 normal = cross(a, b);
-    if (dot(normalize(cameraDirection), normalize(normal)) < 0.0) {
+    vec3 v0 = posSSBO[facesSSBO[gl_GlobalInvocationID.x].vertIndices[0]];
+    vec3 v1 = posSSBO[facesSSBO[gl_GlobalInvocationID.x].vertIndices[1]];
+    vec3 v2 = posSSBO[facesSSBO[gl_GlobalInvocationID.x].vertIndices[2]];
+
+    vec3 a = v1 - v0;
+    vec3 b = v2 - v0;
+    vec3 normal = normalize(cross(a, b));
+
+    if (dot(normalize(cameraDirection), normal) < 0) {
         idSSBO[gl_GlobalInvocationID.x] = int(gl_GlobalInvocationID.x); 
     }
 }

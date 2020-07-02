@@ -3,7 +3,6 @@
 #extension GL_ARB_compute_variable_group_size : enable
 
 #define PI 3.1415926538
-#define EPSILON 0.0000001
 
 struct Ray {
     vec3 origin;
@@ -37,7 +36,7 @@ layout(std430, binding = 5) buffer ID {
     int idSSBO[];
 };
 
-layout(std430, binding = 7) buffer Faces {
+layout(std430, binding = 6) buffer Faces {
     Triangle facesSSBO[];
 };
 
@@ -82,10 +81,6 @@ bool rayIntersectsTriangle(Ray ray, Triangle triangle) {
     vec3 pVec = cross(ray.direction, b);
     float determinator = dot(a, pVec);
 
-    if (abs(determinator) < EPSILON) {
-        return false;
-    }
-
     float invDet = 1 / determinator;
 
     vec3 tVec = ray.origin - v0;
@@ -106,7 +101,7 @@ bool rayIntersectsTriangle(Ray ray, Triangle triangle) {
     
     // if t is lower than the epsilon value then the triangle is behind the ray
     // i.e. the ray should not be able to intersect with the triangle
-    if (ray.t < EPSILON) {
+    if (ray.t < 0) {
         return false;
     }
 
@@ -144,7 +139,7 @@ vec4 getFinalColour(ivec2 pixelCoords) {
     ray.direction = normalize((inverseViewMatrix * vec4(middlePoint, 1.0)).xyz - ray.origin);
     
     // check for intersection between ray and objects
-    for (int i = 0; i < idSSBO.length(); ++i) {
+    for (uint i = 0; i < idSSBO.length(); ++i) {
         int triangleIndex = idSSBO[i];
         if (triangleIndex == -1) {
             finalColour = vec4(0.2, 0.2, 0.2, 1.0);
