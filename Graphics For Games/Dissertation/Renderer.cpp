@@ -170,7 +170,9 @@ void Renderer::ResetIDBuffer() {
 void Renderer::InitMeshReading() {
 	SetCurrentShader(meshReader);
 	modelMatrix = Matrix4::Translation(Vector3(0, 0, -50)) * Matrix4::Scale(Vector3(10, 10, 10));
-	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraDirection"), 1, (float*)&(camera->GetPosition() - modelMatrix.GetPositionVector()));
+	Vector3 cameraDirection = modelMatrix.GetPositionVector() - camera->GetPosition();
+	cameraDirection.Normalise();
+	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraDirection"), 1, (float*)&cameraDirection);
 	glDispatchComputeGroupSizeARB(1, 1, 1, triangle->GetNumFaces(), 1, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
