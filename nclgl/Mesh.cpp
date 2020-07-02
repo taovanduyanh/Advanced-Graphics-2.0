@@ -100,8 +100,6 @@ Mesh* Mesh::GenerateQuad() {
 		m->tangents[i] = Vector3(1.0f, 0.0f, 0.0f);
 	}
 
-	m->normals[3] = Vector3(-1.0f, 0.0f, 0.0f);
-
 	// Faces..
 	m->facesList = new Triangle[m->numFaces];
 	for (int i = 0; i < m->numFaces; ++i) {
@@ -123,6 +121,171 @@ Mesh* Mesh::GenerateQuad() {
 	}
 
 	m->BufferData();
+	return m;
+}
+
+Mesh* Mesh::GenerateCube() {
+	Mesh* m = new Mesh();
+	m->numFaces = 12;
+	m->numVertices = 8;
+	m->type = GL_TRIANGLE_STRIP;
+
+	m->vertices = new Vector3[m->numVertices];
+	m->textureCoords = new Vector2[15];
+	m->colours = new Vector4[m->numVertices];
+	m->normals = new Vector3[6];
+	m->tangents = new Vector3[6];
+
+	m->vertices[0] = Vector3(-1.0f, -0.003248f, 1.0f);
+	m->vertices[1] = Vector3(1.0f, -0.003248f, 1.0f);
+	m->vertices[2] = Vector3(-1.0f, 1.996752f, 1.0f);
+	m->vertices[3] = Vector3(1.0f, 1.996752f, 1.0f);
+	m->vertices[4] = Vector3(1.0f, -0.003248f, -1.0f);
+	m->vertices[5] = Vector3(-1.0f, -0.003248f, -1.0f);
+	m->vertices[6] = Vector3(1.0f, 1.996752f, -1.0f);
+	m->vertices[7] = Vector3(-1.0f, 1.996752f, -1.0f);
+
+	m->textureCoords[0] = Vector2(1.0f, 0.0f);
+	m->textureCoords[1] = Vector2(0.0f, 0.0f);
+	m->textureCoords[2] = Vector2(0.0f, 1.0f);
+	m->textureCoords[3] = Vector2(1.0f, 0.0f);
+	m->textureCoords[4] = Vector2(0.0f, 0.0f);
+	m->textureCoords[5] = Vector2(1.0f, 0.0f);
+	m->textureCoords[6] = Vector2(0.0f, 0.0f);
+	m->textureCoords[7] = Vector2(0.0f, 1.0f);
+	m->textureCoords[8] = Vector2(1.0f, 0.0f);
+	m->textureCoords[9] = Vector2(0.0f, 0.0f);
+	m->textureCoords[10] = Vector2(0.0f, 0.0f);
+	m->textureCoords[11] = Vector2(1.0f, 0.0f);
+	m->textureCoords[12] = Vector2(1.0f, 0.0f);
+	m->textureCoords[13] = Vector2(0.0f, 1.0f);
+	m->textureCoords[14] = Vector2(0.0f, 0.0f);
+
+	for (int i = 0; i < m->numVertices; ++i) {
+		m->colours[i] = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+	}
+
+	m->normals[0] = Vector3(0.0f, 0.0f, 1.0f);
+	m->normals[1] = Vector3(0.0f, 0.0f, -1.0f);
+	m->normals[2] = Vector3(-1.0f, 0.0f, 0.0f);
+	m->normals[3] = Vector3(1.0f, 0.0f, 0.0f);
+	m->normals[4] = Vector3(0.0f, 1.0f, 1.0f);
+	m->normals[5] = Vector3(0.0f, -1.0f, 1.0f);
+
+	// Faces..
+	m->facesList = new Triangle[m->numFaces];
+	
+	int index = 0;
+	for (int i = 0; i < m->numFaces; ++i) {
+		for (int j = 0; j < 3; ++j) {
+			m->facesList[i].normalsIndices[j] = index;
+		}
+
+		if ((i + 1) % 2 == 0) {
+			++index;
+		}
+	}
+
+	// Positions..
+	m->facesList[0].verticesIndices[0] = 0;
+	m->facesList[0].verticesIndices[1] = 1;
+	m->facesList[0].verticesIndices[2] = 2;
+
+	m->facesList[1].verticesIndices[0] = 1;
+	m->facesList[1].verticesIndices[1] = 3;
+	m->facesList[1].verticesIndices[2] = 2;
+
+	m->facesList[2].verticesIndices[0] = 4;
+	m->facesList[2].verticesIndices[1] = 5;
+	m->facesList[2].verticesIndices[2] = 6;
+
+	m->facesList[3].verticesIndices[0] = 5;
+	m->facesList[3].verticesIndices[1] = 7;
+	m->facesList[3].verticesIndices[2] = 6;
+
+	m->facesList[4].verticesIndices[0] = 2;
+	m->facesList[4].verticesIndices[1] = 5;
+	m->facesList[4].verticesIndices[2] = 0;
+
+	m->facesList[5].verticesIndices[0] = 2;
+	m->facesList[5].verticesIndices[1] = 7;
+	m->facesList[5].verticesIndices[2] = 5;
+
+	m->facesList[6].verticesIndices[0] = 6;
+	m->facesList[6].verticesIndices[1] = 1;
+	m->facesList[6].verticesIndices[2] = 4;
+
+	m->facesList[7].verticesIndices[0] = 6;
+	m->facesList[7].verticesIndices[1] = 3;
+	m->facesList[7].verticesIndices[2] = 1;
+
+	m->facesList[8].verticesIndices[0] = 2;
+	m->facesList[8].verticesIndices[1] = 6;
+	m->facesList[8].verticesIndices[2] = 7;
+
+	m->facesList[9].verticesIndices[0] = 2;
+	m->facesList[9].verticesIndices[1] = 3;
+	m->facesList[9].verticesIndices[2] = 6;
+
+	m->facesList[10].verticesIndices[0] = 1;
+	m->facesList[10].verticesIndices[1] = 5;
+	m->facesList[10].verticesIndices[2] = 4;
+
+	m->facesList[11].verticesIndices[0] = 1;
+	m->facesList[11].verticesIndices[1] = 0;
+	m->facesList[11].verticesIndices[2] = 5;
+
+	// Texture coords
+	m->facesList[0].texCoordsIndices[0] = 0;
+	m->facesList[0].texCoordsIndices[1] = 1;
+	m->facesList[0].texCoordsIndices[2] = 2;
+
+	m->facesList[1].texCoordsIndices[0] = 3;
+	m->facesList[1].texCoordsIndices[1] = 4;
+	m->facesList[1].texCoordsIndices[2] = 2;
+
+	m->facesList[2].texCoordsIndices[0] = 5;
+	m->facesList[2].texCoordsIndices[1] = 6;
+	m->facesList[2].texCoordsIndices[2] = 7;
+
+	m->facesList[3].texCoordsIndices[0] = 8;
+	m->facesList[3].texCoordsIndices[1] = 9;
+	m->facesList[3].texCoordsIndices[2] = 7;
+
+	m->facesList[4].texCoordsIndices[0] = 2;
+	m->facesList[4].texCoordsIndices[1] = 6;
+	m->facesList[4].texCoordsIndices[2] = 0;
+
+	m->facesList[5].texCoordsIndices[0] = 2;
+	m->facesList[5].texCoordsIndices[1] = 9;
+	m->facesList[5].texCoordsIndices[2] = 8;
+
+	m->facesList[6].texCoordsIndices[0] = 7;
+	m->facesList[6].texCoordsIndices[1] = 1;
+	m->facesList[6].texCoordsIndices[2] = 5;
+
+	m->facesList[7].texCoordsIndices[0] = 7;
+	m->facesList[7].texCoordsIndices[1] = 4;
+	m->facesList[7].texCoordsIndices[2] = 3;
+
+	m->facesList[8].texCoordsIndices[0] = 2;
+	m->facesList[8].texCoordsIndices[1] = 10;
+	m->facesList[8].texCoordsIndices[2] = 11;
+
+	m->facesList[9].texCoordsIndices[0] = 2;
+	m->facesList[9].texCoordsIndices[1] = 4;
+	m->facesList[9].texCoordsIndices[2] = 12;
+
+	m->facesList[10].texCoordsIndices[0] = 13;
+	m->facesList[10].texCoordsIndices[1] = 6;
+	m->facesList[10].texCoordsIndices[2] = 5;
+
+	m->facesList[11].texCoordsIndices[0] = 13;
+	m->facesList[11].texCoordsIndices[1] = 14;
+	m->facesList[11].texCoordsIndices[2] = 8;
+
+
+	//m->BufferData();
 	return m;
 }
 

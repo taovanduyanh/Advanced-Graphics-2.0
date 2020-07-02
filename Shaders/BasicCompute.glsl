@@ -82,6 +82,10 @@ bool rayIntersectsTriangle(Ray ray, Triangle triangle) {
     vec3 pVec = cross(ray.direction, b);
     float determinator = dot(a, pVec);
 
+    if (abs(determinator) < EPSILON) {
+        return false;
+    }
+
     float invDet = 1 / determinator;
 
     vec3 tVec = ray.origin - v0;
@@ -155,7 +159,8 @@ vec4 getFinalColour(ivec2 pixelCoords) {
                 return finalColour;
             }
             else {
-                return vec4(barycentricCoord.u, barycentricCoord.v, barycentricCoord.w, 1.0);
+                //return vec4(barycentricCoord.u, barycentricCoord.v, barycentricCoord.w, 1.0);
+                return vec4(1.0, 1.0, 1.0, 1.0);
             }
         } 
         else {

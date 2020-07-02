@@ -10,8 +10,8 @@ public:
 
 	static void CreateCube() {
 		OBJMesh* temp = new OBJMesh();
-		temp->LoadOBJMesh(MESHDIR"Tree1.obj");
-		//cube->SetTexutre(SOIL_load_OGL_texture("../../Textures/brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, 0));
+		temp->LoadOBJMesh(MESHDIR"cube.obj");
+		cube->SetTexutre(SOIL_load_OGL_texture("../../../Textures/brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, 0));
 		cube = temp;
 		if (!cube->GetTexture()) {
 			return;

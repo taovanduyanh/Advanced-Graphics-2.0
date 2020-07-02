@@ -1,8 +1,8 @@
 #include "Renderer.h"
 
 Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
-	triangle = Mesh::GenerateQuad();
-	triangle->SetTexutre(SOIL_load_OGL_texture(TEXTUREDIR"brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, 0));
+	triangle = Mesh::GenerateCube();
+	//triangle->SetTexutre(SOIL_load_OGL_texture(TEXTUREDIR"brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
 
 	//triangle = new OBJMesh();
 	//dynamic_cast<OBJMesh*>(triangle)->LoadOBJMesh(MESHDIR"cube.obj");
@@ -21,13 +21,13 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	// SSBOs here..
 	// Position
 	Vector3* positions = triangle->GetPositions();
-	Vector4 temp[4];	// change this later..
+	Vector4 temp1[8];	// change this later..
 	for (int i = 0; i < triangle->GetNumVertices(); ++i) {
-		temp[i] = Vector4(positions[i].x, positions[i].y, positions[i].z, 1.0f);
+		temp1[i] = Vector4(positions[i].x, positions[i].y, positions[i].z, 1.0f);
 	}
 	glGenBuffers(1, &verticesInfoSSBO[POSITION]);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[POSITION]);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, triangle->GetNumVertices() * sizeof(Vector4), temp, GL_STATIC_DRAW);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, triangle->GetNumVertices() * sizeof(Vector4), temp1, GL_STATIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, POSITION, verticesInfoSSBO[POSITION]);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
@@ -47,12 +47,13 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 
 	// Normals
 	Vector3* normals = triangle->GetNormals();
-	for (int i = 0; i < triangle->GetNumVertices(); ++i) {
-		temp[i] = Vector4(normals[i].x, normals[i].y, normals[i].z, 1.0f);
+	Vector4 temp2[36];	// change this later..
+	for (int i = 0; i < 36; ++i) {
+		temp2[i] = Vector4(normals[i].x, normals[i].y, normals[i].z, 1.0f);
 	}
 	glGenBuffers(1, &verticesInfoSSBO[NORMAL]);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[NORMAL]);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, triangle->GetNumVertices() * sizeof(Vector4), temp, GL_STATIC_DRAW);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, 36 * sizeof(Vector4), temp2, GL_STATIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NORMAL, verticesInfoSSBO[NORMAL]);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
@@ -100,6 +101,23 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 
 	glEnable(GL_DEPTH_TEST);
 
+	// just testing idea..
+	// it might actually work!
+	//Vector3 low = modelMatrix * Vector3(-1.0f, -0.003248f, -1.0f);
+	//Vector3 high = modelMatrix * Vector3(-1.0f, 1.996752f, 1.0f);
+	//Vector3 middlePoint = Vector3((low.x + high.x) / 2, (low.y + high.y) / 2, (low.z + high.z) / 2);
+	//Vector3 lowUp = Vector3(low.x, high.y, low.z);
+	//Vector3 a = high - middlePoint;
+	//Vector3 b = lowUp - middlePoint;
+	//Vector3 normal = Vector3::Cross(a, b);
+	//normal.Normalise();
+	//Vector3 rayOrigin = Vector3(0.0f, 0.0f, 0.0f);
+	//Vector3 rayDirection = Vector3(-1.0f, 0.0f, 0.0f);
+	//float denom = Vector3::Dot(rayDirection, normal);
+	//float inDenom = 1 / denom;
+	//Vector3 p = middlePoint - rayOrigin;
+	//float t = Vector3::Dot(p, normal) * inDenom;
+
 	// fov here..
 	fov = 45.0f;
 
@@ -137,6 +155,13 @@ void Renderer::ResetCamera() {
 
 void Renderer::ResetIDBuffer() {
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, selectedFacesIDSSBO);
+	// uncomment this to debug..
+	//GLint* p = (GLint*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+	//for (int i = 0; i < triangle->GetNumFaces(); ++i) {
+	//	cout << p[i] << endl;
+	//}
+	//cout << endl;
+	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 	glClearBufferData(GL_SHADER_STORAGE_BUFFER, GL_R32I, GL_RED_INTEGER, GL_INT, collectedID);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
