@@ -20,6 +20,10 @@ layout(std430, binding = 6) buffer Faces {
     Triangle facesSSBO[];
 };
 
+layout(std430, binding = 7) buffer MiddlePoints {
+    vec3 middlePointsSSBO[];
+};
+
 uniform vec3 cameraDirection;
 
 layout(local_size_variable) in;
@@ -36,4 +40,9 @@ void main() {
     if (dot(normalize(cameraDirection), normal) < 0) {
         idSSBO[gl_GlobalInvocationID.x] = int(gl_GlobalInvocationID.x); 
     }
+
+    middlePointsSSBO[gl_GlobalInvocationID.x] = vec3((v0.x + v1.x + v2.x) / 3,
+                                                     (v0.y + v1.y + v2.y) / 3, 
+                                                     (v0.z + v1.z + v2.z) / 3);
+
 }

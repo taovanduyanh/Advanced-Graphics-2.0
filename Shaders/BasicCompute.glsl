@@ -4,15 +4,33 @@
 
 #define PI 3.1415926538
 
+struct Triangle {
+    uint vertIndices[3];
+    uint texIndices[3];
+    uint normalsIndices[3];
+};
+
 struct Ray {
     vec3 origin;
     vec3 direction;
     float t;
 } ray, shadowRay;
 
+struct Data {
+    int closestSphereID;
+    float t;
+} data;
+
 struct BarycentricCoord {
     float u, v, w;
 } barycentricCoord;
+
+struct Sphere {
+    vec4 center;
+    uint numFaces;
+    float radius;
+    int facesID[2];
+};
 
 layout(std430, binding = 0) buffer Positions {
     vec3 posSSBO[];
@@ -26,18 +44,12 @@ layout(std430, binding = 2) buffer TextureCoords {
     vec2 texCoordsSSBO[];
 };
 
-struct Triangle {
-    uint vertIndices[3];
-    uint texIndices[3];
-    uint normalsIndices[3];
-};
-
-layout(std430, binding = 5) buffer ID {
-    int idSSBO[];
-};
-
 layout(std430, binding = 6) buffer Faces {
     Triangle facesSSBO[];
+};
+
+layout(std430, binding = 8) buffer Spheres {
+    Sphere spheresSSBO[];
 };
 
 layout(local_size_variable) in;
@@ -48,10 +60,16 @@ uniform int useTexture;
 uniform mat4 modelMatrix;
 uniform mat4 viewMatrix;
 uniform vec2 pixelSize;
+uniform vec3 scaleVector;
+uniform vec3 cameraPos;
 uniform float fov;
+
+// remove this later..
+layout(binding = 0, offset = 0) uniform atomic_uint counter;
 
 float toRadian(float angle);
 bool rayIntersectsTriangle(Ray ray, Triangle triangle);
+bool rayIntersectsSphere(Ray ray, Sphere sphere, int id);
 vec3 pixelMiddlePoint(ivec2 pixelCoords);
 vec4 getFinalColour(ivec2 pixelCoords);
 
@@ -108,6 +126,53 @@ bool rayIntersectsTriangle(Ray ray, Triangle triangle) {
     return true;
 }
 
+bool rayIntersectsSphere(Ray ray, Sphere sphere, int id) {
+    float avgScale = (scaleVector.x * scaleVector.y * scaleVector.z); 
+    vec3 oc = ray.origin - (modelMatrix * sphere.center).xyz;
+    float a = dot(ray.direction, ray.direction);
+    float b = dot(oc, ray.direction) * 2.0;
+    float c = dot(oc, oc) - sphere.radius * sphere.radius * avgScale;
+    float discriminant = b * b - 4 * a * c;
+
+    float t0 = 0.0;
+    float t1 = 0.0;
+    if (discriminant < 0.0) {
+        return false;
+    }
+    else if (discriminant == 0.0) {   // perhaps do epsilon to make sure..
+        float invA = 1 / a;
+        t0 = t1 = -0.5 * b * invA;
+    }
+    else {
+        float uppper = (b > 0) ? (b + sqrt(discriminant)) : (b - sqrt(discriminant)); 
+        float q = -uppper * 0.5;
+        float invA = 1 / a;
+        float invQ = 1 / q;
+        t0 = q * invA;
+        t1 = c * invQ;
+    }
+
+    if (t0 > t1) {
+        float temp = t0;
+        t0 = t1; 
+        t1 = temp;
+    }
+
+    if (t0 < 0.0) {
+        if (t1 < 0.0) {
+            return false;
+        }
+        t0 = t1;
+    }
+
+    if (t0 < data.t) {
+        data.t = t0;
+        data.closestSphereID = id;
+    }
+
+    return true;
+}
+
 vec3 pixelMiddlePoint(ivec2 pixelCoords) {
     ivec2 imageSize = imageSize(image); // x = width; y = height
     float imageRatio = imageSize.x / imageSize.y;
@@ -129,7 +194,7 @@ float toRadian(float angle) {
 }
 
 vec4 getFinalColour(ivec2 pixelCoords) {
-    vec4 finalColour = vec4(0.0);
+    vec4 finalColour = vec4(0.2, 0.2, 0.2, 1.0);
 
     // the middle point of the pixel should be in world space now by multiplying with the inverse view matrix..
     // need to find the middle point of the pixel in world space..
@@ -137,31 +202,33 @@ vec4 getFinalColour(ivec2 pixelCoords) {
     vec3 middlePoint = pixelMiddlePoint(pixelCoords);
     ray.origin = (inverseViewMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;   
     ray.direction = normalize((inverseViewMatrix * vec4(middlePoint, 1.0)).xyz - ray.origin);
+    data.t = 1.0 / 0.0;
+    data.closestSphereID = -1;
     
-    // check for intersection between ray and objects
-    for (uint i = 0; i < idSSBO.length(); ++i) {
-        int triangleIndex = idSSBO[i];
-        if (triangleIndex == -1) {
-            finalColour = vec4(0.2, 0.2, 0.2, 1.0);
-        }
-        else if (rayIntersectsTriangle(ray, facesSSBO[triangleIndex])) {
-            if (useTexture > 0) {
-                vec2 tc0 = texCoordsSSBO[facesSSBO[triangleIndex].texIndices[0]];
-                vec2 tc1 = texCoordsSSBO[facesSSBO[triangleIndex].texIndices[1]];
-                vec2 tc2 = texCoordsSSBO[facesSSBO[triangleIndex].texIndices[2]];
-                vec2 texCoord = barycentricCoord.w * tc0 + barycentricCoord.u * tc1 + barycentricCoord.v * tc2;
-                finalColour = texture(diffuse, texCoord);
-                return finalColour;
-            }
-            else {
-                return vec4(barycentricCoord.u, barycentricCoord.v, barycentricCoord.w, 1.0);
-                //return vec4(1.0, 1.0, 1.0, 1.0);
-            }
-        } 
-        else {
-            finalColour = vec4(0.2, 0.2, 0.2, 1.0);
-        }
+    // IT WORKS!!!
+    for (int i = 0; i < spheresSSBO.length(); ++i) {
+        rayIntersectsSphere(ray, spheresSSBO[i], i);
     }
 
+    if (data.closestSphereID != -1 && spheresSSBO[data.closestSphereID].numFaces > 0) {
+        for (int i = 0; i < spheresSSBO[data.closestSphereID].numFaces; ++i) {
+            int triangleID = spheresSSBO[data.closestSphereID].facesID[i];
+            if (triangleID != -1 && rayIntersectsTriangle(ray, facesSSBO[triangleID])) {
+                if (useTexture > 0) {
+                    vec2 tc0 = texCoordsSSBO[facesSSBO[triangleID].texIndices[0]];
+                    vec2 tc1 = texCoordsSSBO[facesSSBO[triangleID].texIndices[1]];
+                    vec2 tc2 = texCoordsSSBO[facesSSBO[triangleID].texIndices[2]];
+                    vec2 texCoord = barycentricCoord.w * tc0 + barycentricCoord.u * tc1 + barycentricCoord.v * tc2;
+                    finalColour = texture(diffuse, texCoord);
+                    return finalColour;
+                }
+                else {
+                    return vec4(barycentricCoord.u, barycentricCoord.v, barycentricCoord.w, 1.0);
+                }
+            }
+        }
+        
+    }
+    
     return finalColour;
 }

@@ -12,10 +12,11 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 
 	// for geometry shader SHADERDIR"TrianglesExtraction.glsl"
 	meshReader = new Shader(SHADERDIR"AnotherCompute.glsl");
+	lastHope = new Shader(SHADERDIR"LastHope.glsl");
 	rayTracerShader = new Shader(SHADERDIR"BasicCompute.glsl");
 	finalShader = new Shader(SHADERDIR"TexturedVertex.glsl", SHADERDIR"TexturedFragment.glsl");
 
-	if (!meshReader->LinkProgram() || !rayTracerShader->LinkProgram() || !finalShader->LinkProgram()) {
+	if (!meshReader->LinkProgram() || !lastHope->LinkProgram() || !rayTracerShader->LinkProgram() || !finalShader->LinkProgram()) {
 		return;
 	}
 
@@ -74,6 +75,48 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX + 1, meshesInfoSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
+	// Middle points of the triangles/faces..
+	middlePoints = new Vector4[triangle->GetNumFaces()];
+	for (GLuint i = 0; i < triangle->GetNumFaces(); ++i) {
+		middlePoints[i] = Vector4();
+	}
+	glGenBuffers(1, &middlePointsSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, middlePointsSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, triangle->GetNumFaces() * sizeof(Vector4), middlePoints, GL_STATIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX + 2, middlePointsSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	// Spheres..
+	if (triangle->GetNumFaces() & 1) {
+		numSpheres = triangle->GetNumFaces() * 0.5 + 1;
+	}
+	else {
+		numSpheres = triangle->GetNumFaces() * 0.5;
+	}
+
+	spheres = new Sphere[numSpheres];
+	for (int i = 0; i < numSpheres; ++i) {
+		spheres[i].numFaces = 0;
+		spheres[i].radius = 0.0f;
+		//spheres[i].center = Vector4();
+		spheres[i].facesID[0] = -1;
+		spheres[i].facesID[1] = -1;
+	}
+
+	glGenBuffers(1, &spheresSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, spheresSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, numSpheres * sizeof(Sphere), spheres, GL_STATIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX + 3, spheresSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	// atomic counter..
+	GLuint temp = 0;
+	glGenBuffers(1, &atomicCounter);
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, atomicCounter);
+	glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), &temp, GL_STATIC_DRAW);
+	glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, atomicCounter);
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
+
 	// Stuffs related to compute shader..
 	// No. of work groups you can create in each dimension
 	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &maxWorkGroups[0]);
@@ -102,23 +145,6 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 
 	glEnable(GL_DEPTH_TEST);
 
-	// just testing idea..
-	// it might actually work!
-	//Vector3 low = modelMatrix * Vector3(-1.0f, -0.003248f, -1.0f);
-	//Vector3 high = modelMatrix * Vector3(-1.0f, 1.996752f, 1.0f);
-	//Vector3 middlePoint = Vector3((low.x + high.x) / 2, (low.y + high.y) / 2, (low.z + high.z) / 2);
-	//Vector3 lowUp = Vector3(low.x, high.y, low.z);
-	//Vector3 a = high - middlePoint;
-	//Vector3 b = lowUp - middlePoint;
-	//Vector3 normal = Vector3::Cross(a, b);
-	//normal.Normalise();
-	//Vector3 rayOrigin = Vector3(0.0f, 0.0f, 0.0f);
-	//Vector3 rayDirection = Vector3(-1.0f, 0.0f, 0.0f);
-	//float denom = Vector3::Dot(rayDirection, normal);
-	//float inDenom = 1 / denom;
-	//Vector3 p = middlePoint - rayOrigin;
-	//float t = Vector3::Dot(p, normal) * inDenom;
-
 	// fov here..
 	fov = 45.0f;
 
@@ -131,15 +157,23 @@ Renderer::~Renderer(void) {
 	delete camera;
 
 	delete meshReader;
+	delete lastHope;
 	delete rayTracerShader;
 	delete finalShader;
 	currentShader = NULL;
 
 	delete[] collectedID;
+	delete[] middlePoints;
+	delete[] spheres;
 
 	glDeleteBuffers(MAX, verticesInfoSSBO);
 	glDeleteBuffers(1, &selectedFacesIDSSBO);
 	glDeleteBuffers(1, &meshesInfoSSBO);
+	glDeleteBuffers(1, &middlePointsSSBO);
+	glDeleteBuffers(1, &spheresSSBO);
+
+	// remove this later..
+	glDeleteBuffers(1, &atomicCounter);
 	glDeleteTextures(1, &image);
 }
 
@@ -154,7 +188,7 @@ void Renderer::ResetCamera() {
 	camera->SetYaw(0.0f);
 }
 
-void Renderer::ResetIDBuffer() {
+void Renderer::ResetBuffers() {
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, selectedFacesIDSSBO);
 	// uncomment this to debug..
 	//GLint* p = (GLint*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
@@ -162,9 +196,29 @@ void Renderer::ResetIDBuffer() {
 	//	cout << p[i] << endl;
 	//}
 	//cout << endl;
-	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+	//glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 	glClearBufferData(GL_SHADER_STORAGE_BUFFER, GL_R32I, GL_RED_INTEGER, GL_INT, collectedID);
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, middlePointsSSBO);
+	Vector4* p = (Vector4*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
+	//for (int i = 0; i < 12; ++i) {
+	//	cout << p[i].x << " " << p[i].y << " " << p[i].z << endl;
+	//}
+	//cout << endl;
+	memcpy(p, middlePoints, triangle->GetNumFaces() * sizeof(Vector4));
+	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, spheresSSBO);
+	Sphere* sp = (Sphere*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
+	memcpy(sp, spheres, numSpheres * sizeof(Sphere));
+	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	// remove these later
+	glClearNamedBufferDataEXT(atomicCounter, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, 0);
+
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
+	
 }
 
 void Renderer::InitMeshReading() {
@@ -177,6 +231,13 @@ void Renderer::InitMeshReading() {
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
+void Renderer::InitLastHope() {
+	SetCurrentShader(lastHope);
+	UpdateShaderMatrices();
+	glDispatchComputeGroupSizeARB(1, 1, 1, numSpheres, 1, 1);
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+}
+
 void Renderer::InitRayTracing() {
 	// Compute shader for ray tracing..
 	SetCurrentShader(rayTracerShader);
@@ -184,11 +245,15 @@ void Renderer::InitRayTracing() {
 	// assume that we are using texture0
 	glBindTexture(GL_TEXTURE_2D, image);
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "image"), 0);
+
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, triangle->GetTexture());
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "diffuse"), 1);
+
+	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "scaleVector"), 1, (float*)&modelMatrix.GetScalingVector());
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "useTexture"), triangle->GetTexture());
 	glUniform2f(glGetUniformLocation(currentShader->GetProgram(), "pixelSize"), 1.0f / width, 1.0f / height);
+	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraPos"), 1, (float*)&camera->GetPosition());
 	glUniform1f(glGetUniformLocation(currentShader->GetProgram(), "fov"), fov);
 
 	UpdateShaderMatrices();
@@ -216,8 +281,9 @@ void Renderer::InitFinalScene() {
 void Renderer::RenderScene() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	InitMeshReading();
+	InitLastHope();
 	InitRayTracing();
 	InitFinalScene();
 	SwapBuffers();
-	ResetIDBuffer();
+	ResetBuffers();
 }
