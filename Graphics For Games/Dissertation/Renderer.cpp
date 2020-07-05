@@ -2,7 +2,7 @@
 
 Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	triangle = Mesh::GenerateCube();
-	triangle->SetTexutre(SOIL_load_OGL_texture(TEXTUREDIR"brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
+	//triangle->SetTexutre(SOIL_load_OGL_texture(TEXTUREDIR"brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
 	//SetTextureRepeating(triangle->GetTexture(), true);
 
 	//triangle = new OBJMesh();

@@ -207,27 +207,23 @@ vec4 getFinalColour(ivec2 pixelCoords) {
     
     // IT WORKS!!!
     for (int i = 0; i < spheresSSBO.length(); ++i) {
-        rayIntersectsSphere(ray, spheresSSBO[i], i);
-    }
-
-    if (data.closestSphereID != -1 && spheresSSBO[data.closestSphereID].numFaces > 0) {
-        for (int i = 0; i < spheresSSBO[data.closestSphereID].numFaces; ++i) {
-            int triangleID = spheresSSBO[data.closestSphereID].facesID[i];
-            if (triangleID != -1 && rayIntersectsTriangle(ray, facesSSBO[triangleID])) {
-                if (useTexture > 0) {
-                    vec2 tc0 = texCoordsSSBO[facesSSBO[triangleID].texIndices[0]];
-                    vec2 tc1 = texCoordsSSBO[facesSSBO[triangleID].texIndices[1]];
-                    vec2 tc2 = texCoordsSSBO[facesSSBO[triangleID].texIndices[2]];
-                    vec2 texCoord = barycentricCoord.w * tc0 + barycentricCoord.u * tc1 + barycentricCoord.v * tc2;
-                    finalColour = texture(diffuse, texCoord);
-                    return finalColour;
+        if (spheresSSBO[i].numFaces > 0 && rayIntersectsSphere(ray, spheresSSBO[i], i)) {
+            for (int j = 0; j < spheresSSBO[i].numFaces; ++j) {
+                int triangleID = spheresSSBO[i].facesID[j];
+                if (triangleID != -1 && rayIntersectsTriangle(ray, facesSSBO[triangleID])) {
+                    if (useTexture > 0) {
+                        vec2 tc0 = texCoordsSSBO[facesSSBO[triangleID].texIndices[0]];
+                        vec2 tc1 = texCoordsSSBO[facesSSBO[triangleID].texIndices[1]];
+                        vec2 tc2 = texCoordsSSBO[facesSSBO[triangleID].texIndices[2]];
+                        vec2 texCoord = barycentricCoord.w * tc0 + barycentricCoord.u * tc1 + barycentricCoord.v * tc2;
+                        return texture(diffuse, texCoord);
+                    }
+                    else {
+                        return vec4(barycentricCoord.u, barycentricCoord.v, barycentricCoord.w, 1.0);
+                    }
                 }
-                else {
-                    return vec4(barycentricCoord.u, barycentricCoord.v, barycentricCoord.w, 1.0);
-                }
-            }
+            }  
         }
-        
     }
     
     return finalColour;
