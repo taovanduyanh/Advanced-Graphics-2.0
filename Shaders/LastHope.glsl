@@ -27,6 +27,8 @@ layout(std430, binding = 8) buffer Spheres {
 
 layout(local_size_variable) in;
 
+uniform mat4 modelMatrix;
+
 void main() {
     uint firstIndex = gl_GlobalInvocationID.x * 2;
     spheresSSBO[gl_GlobalInvocationID.x].numFaces = 0;
@@ -40,6 +42,6 @@ void main() {
         spheresSSBO[gl_GlobalInvocationID.x].facesID[i] = id;
     }
 
-    spheresSSBO[gl_GlobalInvocationID.x].center = vec4(middlePointsSSBO[firstIndex] + temp, 1.0);
-    spheresSSBO[gl_GlobalInvocationID.x].radius = length(temp);
+    spheresSSBO[gl_GlobalInvocationID.x].center = modelMatrix * vec4(middlePointsSSBO[firstIndex] + temp, 1.0);
+    spheresSSBO[gl_GlobalInvocationID.x].radius = length((modelMatrix * vec4(temp, 1.0)).xyz) * 0.3;
 }

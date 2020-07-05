@@ -16,10 +16,12 @@ struct Ray {
     float t;
 } ray, shadowRay;
 
+/**
 struct Data {
     int closestSphereID;
     float t;
 } data;
+*/
 
 struct BarycentricCoord {
     float u, v, w;
@@ -128,17 +130,19 @@ bool rayIntersectsTriangle(Ray ray, Triangle triangle) {
 
 bool rayIntersectsSphere(Ray ray, Sphere sphere, int id) {
     float avgScale = (scaleVector.x * scaleVector.y * scaleVector.z); 
-    vec3 oc = ray.origin - (modelMatrix * sphere.center).xyz;
+    vec3 oc = ray.origin - sphere.center.xyz;
     float a = dot(ray.direction, ray.direction);
     float b = dot(oc, ray.direction) * 2.0;
-    float c = dot(oc, oc) - sphere.radius * sphere.radius * avgScale;
+    float c = dot(oc, oc) - sphere.radius * sphere.radius;
     float discriminant = b * b - 4 * a * c;
-
+    /**
     float t0 = 0.0;
     float t1 = 0.0;
-    if (discriminant < 0.0) {
+    */
+    if (discriminant < 0) {
         return false;
     }
+    /**
     else if (discriminant == 0.0) {   // perhaps do epsilon to make sure..
         float invA = 1 / a;
         t0 = t1 = -0.5 * b * invA;
@@ -169,6 +173,7 @@ bool rayIntersectsSphere(Ray ray, Sphere sphere, int id) {
         data.t = t0;
         data.closestSphereID = id;
     }
+    */
 
     return true;
 }
@@ -202,12 +207,13 @@ vec4 getFinalColour(ivec2 pixelCoords) {
     vec3 middlePoint = pixelMiddlePoint(pixelCoords);
     ray.origin = (inverseViewMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;   
     ray.direction = normalize((inverseViewMatrix * vec4(middlePoint, 1.0)).xyz - ray.origin);
-    data.t = 1.0 / 0.0;
-    data.closestSphereID = -1;
+    //data.t = 1.0 / 0.0;
+    //data.closestSphereID = -1;
     
     // IT WORKS!!!
     for (int i = 0; i < spheresSSBO.length(); ++i) {
         if (spheresSSBO[i].numFaces > 0 && rayIntersectsSphere(ray, spheresSSBO[i], i)) {
+            finalColour += vec4(0.0, 0.15, 0.0, 1.0);
             for (int j = 0; j < spheresSSBO[i].numFaces; ++j) {
                 int triangleID = spheresSSBO[i].facesID[j];
                 if (triangleID != -1 && rayIntersectsTriangle(ray, facesSSBO[triangleID])) {
