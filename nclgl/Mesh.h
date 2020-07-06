@@ -21,6 +21,7 @@ public:
 	virtual void Draw();
 	static Mesh* GenerateTriangle();
 	static Mesh* GenerateQuad();
+	static Mesh* GenerateCube();
 
 	void SetTexutre(GLuint tex) { texture = tex; }
 	GLuint GetTexture() { return texture; }
@@ -31,8 +32,10 @@ public:
 	// For sending info into SSBO for ray tracing
 	GLuint GetNumVertices() const { return numVertices; }
 	Vector3* GetPositions() const { return vertices; }
-	Vector3* GetNormals() const { return normals; }
 	Vector4* GetColours() const { return colours; }
+	Vector2* GetTexCoords() const { return textureCoords; }
+	Vector3* GetNormals() const { return normals; }
+
 
 	GLuint GetNumFaces() const { return numFaces; }
 	Triangle* GetMeshFaces() const { return facesList; }
