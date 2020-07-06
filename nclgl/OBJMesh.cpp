@@ -42,35 +42,31 @@ bool	OBJMesh::LoadOBJMesh(std::string filename)	{
 	OBJSubMesh* currentMesh = new OBJSubMesh();
 	inputSubMeshes.push_back(currentMesh);	//It's safe to assume our OBJ will have a mesh in it ;)
 
-	string currentMtlLib;
-	string currentMtlType;
+	std::string currentMtlLib;
+	std::string currentMtlType;
+	std::string currentLine;
 
-	while(!f.eof()) {
-		std::string currentLine;
-		f >> currentLine;
-
-		if(currentLine == OBJCOMMENT) {		//This line is a comment, ignore it
-			continue;
+	while(f >> currentLine) {
+		if(currentLine == OBJCOMMENT || currentLine == OBJSMOOTH) {		//This line is a comment, ignore it
+			f.ignore((std::numeric_limits<streamsize>::max)(), '\n');
 		}
 		else if(currentLine == OBJMTLLIB) {
 			f >> currentMtlLib;
 		}
-		else if(currentLine == OBJUSEMTL) {
-			currentMesh = new OBJSubMesh();
-			inputSubMeshes.push_back(currentMesh);
+		else if(currentLine == OBJOBJECT || currentLine == OBJGROUP || currentLine == OBJUSEMTL) {	// these three tags potentially means a new submesh..
+			if (currentMesh->vertIndices.size() != 0) {
+				currentMesh = new OBJSubMesh();
+				inputSubMeshes.push_back(currentMesh);
+			}
 
 			currentMesh->mtlSrc = currentMtlLib;
 
-			f >> currentMtlType;
-
+			if (currentLine == OBJUSEMTL) {
+				f >> currentMtlType;
+			}
 			currentMesh->mtlType = currentMtlType;
-		}
-		else if(currentLine == OBJMESH || currentLine == OBJOBJECT) {	//This line is a submesh!
-			currentMesh = new OBJSubMesh();
-			inputSubMeshes.push_back(currentMesh);
 
-			currentMesh->mtlSrc = currentMtlLib;
-			currentMesh->mtlType = currentMtlType;
+			f.ignore((std::numeric_limits<streamsize>::max)(), '\n');
 		}
 		else if(currentLine == OBJVERT) {	//This line is a vertex
 			Vector3 vertex;
@@ -109,11 +105,8 @@ bool	OBJMesh::LoadOBJMesh(std::string filename)	{
 				instead of <vertex index>/<tex coord>/<normal index>
 
 				you can be some OBJ files will have "/ /" instead of "//" though... :(
+				=> don't have to check the "//" like the original..
 			*/
-			bool	skipTex = false;
-			if(faceData.find("//") != std::string::npos) {	
-				skipTex = true;
-			}
 
 			/*
 			Count the number of slashes, but also convert the slashes to spaces
@@ -132,14 +125,14 @@ bool	OBJMesh::LoadOBJMesh(std::string filename)	{
 			vector.
 			*/
 			int tempIndex;
-			std::stringstream	ss(faceData);
+			std::stringstream ss(faceData);
 			while(ss >> tempIndex) {
 				faceIndices.push_back(tempIndex);
 			}
 
 			//If the face indices vector is a multiple of 3, we're looking at triangles
 			//with some combination of vertices, normals, texCoords
-			if(faceIndices.size()%3 == 0) {		//This face is a triangle (probably)!
+			if(faceIndices.size() % 3 == 0) {		//This face is a triangle (probably)!
 				if(faceIndices.size() == 3) {	//This face has only vertex information;
 					currentMesh->vertIndices.push_back(faceIndices.at(0));
 					currentMesh->vertIndices.push_back(faceIndices.at(1));
@@ -155,23 +148,21 @@ bool	OBJMesh::LoadOBJMesh(std::string filename)	{
 				else if(faceIndices.size() == 6) {	//This face has vertex, and one other index...
 					for(int i = 0; i < 6; i += 2) {
 						currentMesh->vertIndices.push_back(faceIndices.at(i));
-						if(!skipTex) {		// a double slash means it's skipping tex info...
-							currentMesh->texIndices.push_back(faceIndices.at(i+1));
-						}
-						else{
-							currentMesh->normIndices.push_back(faceIndices.at(i+1));
-						}
+						currentMesh->normIndices.push_back(faceIndices.at(i+1));
 					}
 				}
 			}
 			else{	
-				std::cout << __func__ << ": Can't read face with faceIndex count of " << faceIndices.size() << std::endl;
 				//Uh oh! Face isn't a triangle. Have fun adding stuff to this ;)
-				bool a = true;
+				std::cout << __func__ << ": Can't read face with faceIndex count of " << faceIndices.size() << std::endl;
 			}
 		}
 		else{
-			std::cout << "OBJMesh::LoadOBJMesh Unknown file data:" << currentLine << std::endl;
+			std::string temp;
+			f >> temp;
+			temp = currentLine + temp;
+			std::cout << "OBJMesh::LoadOBJMesh Unknown file data: " << temp << std::endl;
+			f.ignore((std::numeric_limits<streamsize>::max)(), '\n');
 		}
 	}
 
@@ -181,68 +172,63 @@ bool	OBJMesh::LoadOBJMesh(std::string filename)	{
 
 	//We now have all our mesh data loaded in...Now to convert it into OpenGL vertex buffers!
 	for(unsigned int i = 0; i < inputSubMeshes.size(); ) {
-		OBJSubMesh*sm = inputSubMeshes[i];
+		OBJSubMesh* sm = inputSubMeshes[i];
 
 		/*
 		We're going to be lazy and turn the indices into an absolute list
 		of vertex attributes (it makes handling the submesh list easier)
 		*/
-		if(sm->vertIndices.empty()) {
-			delete sm;
-			inputSubMeshes.erase(inputSubMeshes.begin() + i);
-			continue;
-		}
-		else	{
-			OBJMesh*m;
+		OBJMesh* m;
 			
-			if(i == 0) {
-				m = this;
-			}
-			else{
-				m = new OBJMesh();
-			}
+		if(i == 0) {
+			m = this;
+		}
+		else{
+			m = new OBJMesh();
+		}
 
-			m->SetTexturesFromMTL(sm->mtlSrc, sm->mtlType, materials);
+		m->SetTexturesFromMTL(sm->mtlSrc, sm->mtlType, materials);
 
-			m->numVertices	= sm->vertIndices.size();
+		m->numVertices = sm->vertIndices.size();
 
-			m->vertices		= new Vector3[m->numVertices];
-			for(unsigned int j = 0; j < sm->vertIndices.size(); ++j) {
-				m->vertices[j] = inputVertices[sm->vertIndices[j]-1];
+		m->vertices	= new Vector3[m->numVertices];
+		for(unsigned int j = 0; j < sm->vertIndices.size(); ++j) {
+			m->vertices[j] = inputVertices[sm->vertIndices[j]-1];
+		}
+
+		if(!sm->texIndices.empty())	{
+			m->textureCoords = new Vector2[m->numVertices];
+			for(unsigned int j = 0; j < sm->texIndices.size(); ++j) {
+				m->textureCoords[j] = inputTexCoords[sm->texIndices[j]-1];
 			}
-
-			if(!sm->texIndices.empty())	{
-				m->textureCoords	= new Vector2[m->numVertices];
-				for(unsigned int j = 0; j < sm->texIndices.size(); ++j) {
-					m->textureCoords[j] = inputTexCoords[sm->texIndices[j]-1];
-				}
-			}
+		}
 
 #ifdef OBJ_USE_NORMALS
-			if(sm->normIndices.empty()) {
-				m->GenerateNormals();
-			}
-			else{
-				m->normals		= new Vector3[m->numVertices];
+		if(sm->normIndices.empty()) {
+			m->GenerateNormals();
+		}
+		else{
+			m->normals = new Vector3[m->numVertices];
 
-				for(unsigned int j = 0; j < sm->normIndices.size(); ++j) {
-					m->normals[j] = inputNormals[sm->normIndices[j]-1];
-				}
+			for(unsigned int j = 0; j < sm->normIndices.size(); ++j) {
+				m->normals[j] = inputNormals[sm->normIndices[j]-1];
 			}
+		}
 #endif
 #ifdef OBJ_USE_TANGENTS_BUMPMAPS
-			m->GenerateTangents();
+		m->GenerateTangents();
 #endif
 
-			m->BufferData();
+		m->BufferData();
 
-			if(i != 0) {
-				AddChild(m);
-			}	
-		}
+		if(i != 0) {
+			AddChild(m);
+		}	
+
 		delete inputSubMeshes[i];
 		++i;
 	}
+
 	return true;
 }
 
@@ -290,11 +276,9 @@ void	OBJMesh::SetTexturesFromMTL(string &mtlFile, string &mtlType, map <string, 
 	string  currentMTLName;
 	
 	int mtlCount = 0;
+	std::string currentLine;
 
-	while(!f.eof()) {
-		std::string currentLine;
-		f >> currentLine;
-		
+	while(f >> currentLine) {
 		if(currentLine == MTLNEW) {
 			if(mtlCount > 0) {
 				materials.insert(std::make_pair(currentMTLName,currentMTL));
@@ -337,6 +321,14 @@ void	OBJMesh::SetTexturesFromMTL(string &mtlFile, string &mtlType, map <string, 
 			if(!currentMTL.bump.empty()) {
 				currentMTL.bumpNum = SOIL_load_OGL_texture(string(TEXTUREDIR + currentMTL.bump).c_str(), SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_INVERT_Y | SOIL_FLAG_TEXTURE_REPEATS);
 			}
+		}
+		else {
+			/*std::string temp;
+			f >> temp;
+			temp = currentLine + temp;
+			std::cout << "OBJMesh::LoadOBJMesh Unknown file data: " << temp << std::endl;*/
+			// just ignore for now..
+			f.ignore((std::numeric_limits<streamsize>::max)(), '\n');
 		}
 	}
 

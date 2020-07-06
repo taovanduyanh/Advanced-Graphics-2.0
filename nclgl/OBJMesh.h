@@ -79,15 +79,16 @@ time lighting tutorial, uncomment both OBJ_USE_NORMALS and OBJ_USE_TANGENTS_BUMP
 #include "Mesh.h"
 #include "ChildMeshInterface.h"
 
-#define OBJOBJECT		"object"	//the current line of the obj file defines the start of a new material
+#define OBJOBJECT		"o"	//the current line of the obj file defines the start of a new material
 #define OBJMTLLIB		"mtllib"
 #define OBJUSEMTL		"usemtl"	//the current line of the obj file defines the start of a new material
-#define OBJMESH			"g"			//the current line of the obj file defines the start of a new face
+#define OBJGROUP			"g"			//the current line of the obj file defines the start of a new face
 #define OBJCOMMENT		"#"			//The current line of the obj file is a comment
 #define OBJVERT			"v"			//the current line of the obj file defines a vertex
 #define OBJTEX			"vt"		//the current line of the obj file defines texture coordinates
 #define OBJNORM			"vn"		//the current line of the obj file defines a normal
 #define OBJFACE			"f"			//the current line of the obj file defines a face
+#define OBJSMOOTH		"s"			//the current line of the obj file defines smoothing across the polygons
 
 #define MTLNEW			"newmtl"
 #define MTLDIFFUSE		"Kd"
