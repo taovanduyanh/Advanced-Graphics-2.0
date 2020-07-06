@@ -6,7 +6,7 @@ CubeRobot::CubeRobot(void) {
 	// Optional , uncomment if you want a local origin marker !
 	// SetMesh ( cube );
 	SceneNode* body = new SceneNode(cube, Vector4(1, 1, 1, 1)); // Red !
-	body->SetModelScale(Vector3(1, 1, 1));
+	body->SetModelScale(Vector3(10, 10, 10));
 	body->SetTransform(Matrix4::Translation(Vector3(0, 35, 0)));
 	AddChild(body);
 	

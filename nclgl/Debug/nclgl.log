@@ -1,5 +1,9 @@
+<<<<<<< Updated upstream
 ﻿  Mesh.cpp
 E:\Misc\Diss 2020\Code\nclgl\Mesh.cpp(64,20): warning C4018: '<': signed/unsigned mismatch
 E:\Misc\Diss 2020\Code\nclgl\Mesh.cpp(105,20): warning C4018: '<': signed/unsigned mismatch
 E:\Misc\Diss 2020\Code\nclgl\Mesh.cpp(181,20): warning C4018: '<': signed/unsigned mismatch
+=======
+﻿  OBJMesh.cpp
+>>>>>>> Stashed changes
   nclgl.vcxproj -> E:\Misc\Diss 2020\Code\Graphics For Games\Debug\nclgl.lib
