@@ -21,8 +21,11 @@ int main() {
 		renderer.UpdateScene(w.GetTimer()->GetTimedMS());
 		renderer.RenderScene();
 
-		if (Window::GetKeyboard()->KeyDown(KEYBOARD_R)) {
+		if (Window::GetKeyboard()->KeyTriggered(KEYBOARD_R)) {
 			renderer.ResetCamera();
+		}
+		if (Window::GetKeyboard()->KeyTriggered(KEYBOARD_Q)) {
+			renderer.ToggleSpheresVisibility();
 		}
 	}
 

@@ -25,6 +25,7 @@ public:
 	virtual void RenderScene();
 
 	void ResetCamera();
+	void ToggleSpheresVisibility();
 
 protected:
 	void InitMeshReading();
@@ -69,6 +70,6 @@ protected:
 	GLuint numSpheres;
 	Sphere* spheres;
 
-	// atomic counter, again...
-	GLuint atomicCounter;
+	// For debugging/seeing the spheres..
+	bool showSpheres;
 };

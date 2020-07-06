@@ -2,7 +2,7 @@
 
 Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	triangle = Mesh::GenerateCube();
-	//triangle->SetTexutre(SOIL_load_OGL_texture(TEXTUREDIR"brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
+	triangle->SetTexutre(SOIL_load_OGL_texture(TEXTUREDIR"brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
 	//SetTextureRepeating(triangle->GetTexture(), true);
 
 	//triangle = new OBJMesh();
@@ -109,14 +109,6 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX + 3, spheresSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-	// atomic counter..
-	GLuint temp = 0;
-	glGenBuffers(1, &atomicCounter);
-	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, atomicCounter);
-	glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), &temp, GL_STATIC_DRAW);
-	glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, atomicCounter);
-	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
-
 	// Stuffs related to compute shader..
 	// No. of work groups you can create in each dimension
 	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &maxWorkGroups[0]);
@@ -143,10 +135,12 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	glBindImageTexture(0, image, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
-	glEnable(GL_DEPTH_TEST);
+	// maybe don't needd this anymore..
+	//glEnable(GL_DEPTH_TEST);
 
 	// fov here..
 	fov = 45.0f;
+	showSpheres = false;
 
 	init = true;
 }
@@ -172,8 +166,6 @@ Renderer::~Renderer(void) {
 	glDeleteBuffers(1, &middlePointsSSBO);
 	glDeleteBuffers(1, &spheresSSBO);
 
-	// remove this later..
-	glDeleteBuffers(1, &atomicCounter);
 	glDeleteTextures(1, &image);
 }
 
@@ -186,6 +178,10 @@ void Renderer::ResetCamera() {
 	camera->SetPosition(Vector3(0.0f, 0.0f, 0.0f));
 	camera->SetPitch(0.0f);
 	camera->SetYaw(0.0f);
+}
+
+void Renderer::ToggleSpheresVisibility() {
+	showSpheres = !showSpheres;
 }
 
 void Renderer::ResetBuffers() {
@@ -201,10 +197,6 @@ void Renderer::ResetBuffers() {
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, middlePointsSSBO);
 	Vector4* p = (Vector4*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
-	//for (int i = 0; i < 12; ++i) {
-	//	cout << p[i].x << " " << p[i].y << " " << p[i].z << endl;
-	//}
-	//cout << endl;
 	memcpy(p, middlePoints, triangle->GetNumFaces() * sizeof(Vector4));
 	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
@@ -213,9 +205,6 @@ void Renderer::ResetBuffers() {
 	memcpy(sp, spheres, numSpheres * sizeof(Sphere));
 	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-	// remove these later
-	glClearNamedBufferDataEXT(atomicCounter, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, 0);
 
 	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
 	
@@ -249,7 +238,7 @@ void Renderer::InitRayTracing() {
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, triangle->GetTexture());
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "diffuse"), 1);
-
+	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "showSpheres"), showSpheres);
 	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "scaleVector"), 1, (float*)&modelMatrix.GetScalingVector());
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "useTexture"), triangle->GetTexture());
 	glUniform2f(glGetUniformLocation(currentShader->GetProgram(), "pixelSize"), 1.0f / width, 1.0f / height);

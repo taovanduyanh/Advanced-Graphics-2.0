@@ -16,13 +16,6 @@ struct Ray {
     float t;
 } ray, shadowRay;
 
-/**
-struct Data {
-    int closestSphereID;
-    float t;
-} data;
-*/
-
 struct BarycentricCoord {
     float u, v, w;
 } barycentricCoord;
@@ -65,9 +58,7 @@ uniform vec2 pixelSize;
 uniform vec3 scaleVector;
 uniform vec3 cameraPos;
 uniform float fov;
-
-// remove this later..
-layout(binding = 0, offset = 0) uniform atomic_uint counter;
+uniform bool showSpheres;
 
 float toRadian(float angle);
 bool rayIntersectsTriangle(Ray ray, Triangle triangle);
@@ -135,45 +126,10 @@ bool rayIntersectsSphere(Ray ray, Sphere sphere, int id) {
     float b = dot(oc, ray.direction) * 2.0;
     float c = dot(oc, oc) - sphere.radius * sphere.radius;
     float discriminant = b * b - 4 * a * c;
-    /**
-    float t0 = 0.0;
-    float t1 = 0.0;
-    */
+
     if (discriminant < 0) {
         return false;
     }
-    /**
-    else if (discriminant == 0.0) {   // perhaps do epsilon to make sure..
-        float invA = 1 / a;
-        t0 = t1 = -0.5 * b * invA;
-    }
-    else {
-        float uppper = (b > 0) ? (b + sqrt(discriminant)) : (b - sqrt(discriminant)); 
-        float q = -uppper * 0.5;
-        float invA = 1 / a;
-        float invQ = 1 / q;
-        t0 = q * invA;
-        t1 = c * invQ;
-    }
-
-    if (t0 > t1) {
-        float temp = t0;
-        t0 = t1; 
-        t1 = temp;
-    }
-
-    if (t0 < 0.0) {
-        if (t1 < 0.0) {
-            return false;
-        }
-        t0 = t1;
-    }
-
-    if (t0 < data.t) {
-        data.t = t0;
-        data.closestSphereID = id;
-    }
-    */
 
     return true;
 }
@@ -207,13 +163,14 @@ vec4 getFinalColour(ivec2 pixelCoords) {
     vec3 middlePoint = pixelMiddlePoint(pixelCoords);
     ray.origin = (inverseViewMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;   
     ray.direction = normalize((inverseViewMatrix * vec4(middlePoint, 1.0)).xyz - ray.origin);
-    //data.t = 1.0 / 0.0;
-    //data.closestSphereID = -1;
     
     // IT WORKS!!!
     for (int i = 0; i < spheresSSBO.length(); ++i) {
         if (spheresSSBO[i].numFaces > 0 && rayIntersectsSphere(ray, spheresSSBO[i], i)) {
-            finalColour += vec4(0.0, 0.15, 0.0, 1.0);
+            if (showSpheres) {
+                finalColour += vec4(0.0, 0.15, 0.0, 1.0);
+            }
+            
             for (int j = 0; j < spheresSSBO[i].numFaces; ++j) {
                 int triangleID = spheresSSBO[i].facesID[j];
                 if (triangleID != -1 && rayIntersectsTriangle(ray, facesSSBO[triangleID])) {
