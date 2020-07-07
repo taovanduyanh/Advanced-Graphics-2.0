@@ -195,6 +195,8 @@ bool	OBJMesh::LoadOBJMesh(std::string filename)	{
 // To use this class for rasterization, just go to common.h and comment out the #define USE_RAY_TRACING
 #ifdef USE_RAY_TRACING	
 		m->numVertices = inputVertices.size();
+		m->numTexCoords = inputTexCoords.size();
+		m->numNormals = inputNormals.size();
 		m->numFaces = sm->vertIndices.size() / 3;
 
 		m->vertices = new Vector3[m->numVertices];
@@ -239,7 +241,8 @@ bool	OBJMesh::LoadOBJMesh(std::string filename)	{
 		}
 
 		// tangents, do something for it later on..
-		m->GenerateTangents();
+		//m->GenerateTangents();
+		m->UpdateSSBOs();
 #else
 		m->numVertices = sm->vertIndices.size();
 

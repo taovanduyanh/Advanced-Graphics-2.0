@@ -1,11 +1,10 @@
 #include "Renderer.h"
 
 Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
-	//triangle = Mesh::GenerateCube();
+	//triangle = Mesh::GenerateQuad();
 	triangle = new OBJMesh();
 	dynamic_cast<OBJMesh*>(triangle)->LoadOBJMesh(MESHDIR"cube.obj");
 	triangle->SetTexutre(SOIL_load_OGL_texture(TEXTUREDIR"brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
-	//SetTextureRepeating(triangle->GetTexture(), true);
 
 	sceneQuad = Mesh::GenerateQuad();
 	camera = new Camera();
@@ -19,95 +18,6 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	if (!meshReader->LinkProgram() || !lastHope->LinkProgram() || !rayTracerShader->LinkProgram() || !finalShader->LinkProgram()) {
 		return;
 	}
-
-	// SSBOs here..
-	// Position
-	Vector3* positions = triangle->GetPositions();
-	Vector4 temp1[8];	// change this later..
-	for (int i = 0; i < triangle->GetNumVertices(); ++i) {
-		temp1[i] = Vector4(positions[i].x, positions[i].y, positions[i].z, 1.0f);
-	}
-	glGenBuffers(1, &verticesInfoSSBO[POSITION]);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[POSITION]);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, triangle->GetNumVertices() * sizeof(Vector4), temp1, GL_STATIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, POSITION, verticesInfoSSBO[POSITION]);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-	// Colours
-	glGenBuffers(1, &verticesInfoSSBO[COLOUR]);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[COLOUR]);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, triangle->GetNumVertices() * sizeof(Vector4), triangle->GetColours(), GL_STATIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, COLOUR, verticesInfoSSBO[COLOUR]);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-	// Texture coordinates 
-	glGenBuffers(1, &verticesInfoSSBO[TEX_COORD]);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[TEX_COORD]);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, 36 * sizeof(Vector2), triangle->GetTexCoords(), GL_STATIC_DRAW);	// change this later..
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, TEX_COORD, verticesInfoSSBO[TEX_COORD]);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-	// Normals
-	Vector3* normals = triangle->GetNormals();
-	Vector4 temp2[36];	// change this later..
-	for (int i = 0; i < 36; ++i) {
-		temp2[i] = Vector4(normals[i].x, normals[i].y, normals[i].z, 1.0f);
-	}
-	glGenBuffers(1, &verticesInfoSSBO[NORMAL]);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[NORMAL]);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, 36 * sizeof(Vector4), temp2, GL_STATIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NORMAL, verticesInfoSSBO[NORMAL]);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-	// Face ID 
-	collectedID = new GLint[triangle->GetNumFaces()];
-	std::fill_n(collectedID, triangle->GetNumFaces(), -1);
-	glGenBuffers(1, &selectedFacesIDSSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, selectedFacesIDSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, triangle->GetNumFaces() * sizeof(GLint), collectedID, GL_STATIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX, selectedFacesIDSSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-	// Faces
-	glGenBuffers(1, &meshesInfoSSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, meshesInfoSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, triangle->GetNumFaces() * sizeof(Mesh::Triangle), triangle->GetMeshFaces(), GL_STATIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX + 1, meshesInfoSSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-	// Middle points of the triangles/faces..
-	middlePoints = new Vector4[triangle->GetNumFaces()];
-	for (GLuint i = 0; i < triangle->GetNumFaces(); ++i) {
-		middlePoints[i] = Vector4();
-	}
-	glGenBuffers(1, &middlePointsSSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, middlePointsSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, triangle->GetNumFaces() * sizeof(Vector4), middlePoints, GL_STATIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX + 2, middlePointsSSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-	// Spheres..
-	if (triangle->GetNumFaces() & 1) {
-		numSpheres = triangle->GetNumFaces() * 0.5 + 1;
-	}
-	else {
-		numSpheres = triangle->GetNumFaces() * 0.5;
-	}
-
-	spheres = new Sphere[numSpheres];
-	for (int i = 0; i < numSpheres; ++i) {
-		spheres[i].numFaces = 0;
-		spheres[i].radius = 0.0f;
-		//spheres[i].center = Vector4();
-		spheres[i].facesID[0] = -1;
-		spheres[i].facesID[1] = -1;
-	}
-
-	glGenBuffers(1, &spheresSSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, spheresSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, numSpheres * sizeof(Sphere), spheres, GL_STATIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX + 3, spheresSSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	// Stuffs related to compute shader..
 	// No. of work groups you can create in each dimension
@@ -156,16 +66,6 @@ Renderer::~Renderer(void) {
 	delete finalShader;
 	currentShader = NULL;
 
-	delete[] collectedID;
-	delete[] middlePoints;
-	delete[] spheres;
-
-	glDeleteBuffers(MAX, verticesInfoSSBO);
-	glDeleteBuffers(1, &selectedFacesIDSSBO);
-	glDeleteBuffers(1, &meshesInfoSSBO);
-	glDeleteBuffers(1, &middlePointsSSBO);
-	glDeleteBuffers(1, &spheresSSBO);
-
 	glDeleteTextures(1, &image);
 }
 
@@ -185,29 +85,7 @@ void Renderer::ToggleSpheresVisibility() {
 }
 
 void Renderer::ResetBuffers() {
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, selectedFacesIDSSBO);
-	// uncomment this to debug..
-	//GLint* p = (GLint*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
-	//for (int i = 0; i < triangle->GetNumFaces(); ++i) {
-	//	cout << p[i] << endl;
-	//}
-	//cout << endl;
-	//glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-	glClearBufferData(GL_SHADER_STORAGE_BUFFER, GL_R32I, GL_RED_INTEGER, GL_INT, collectedID);
-
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, middlePointsSSBO);
-	Vector4* p = (Vector4*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
-	memcpy(p, middlePoints, triangle->GetNumFaces() * sizeof(Vector4));
-	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, spheresSSBO);
-	Sphere* sp = (Sphere*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
-	memcpy(sp, spheres, numSpheres * sizeof(Sphere));
-	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
-	
+	triangle->ResetSSBOs();
 }
 
 void Renderer::InitMeshReading() {
@@ -223,7 +101,7 @@ void Renderer::InitMeshReading() {
 void Renderer::InitLastHope() {
 	SetCurrentShader(lastHope);
 	UpdateShaderMatrices();
-	glDispatchComputeGroupSizeARB(1, 1, 1, numSpheres, 1, 1);
+	glDispatchComputeGroupSizeARB(1, 1, 1, triangle->GetNumSpheres(), 1, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 

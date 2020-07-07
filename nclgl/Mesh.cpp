@@ -24,7 +24,6 @@ Mesh::Mesh(void) {
 
 Mesh::~Mesh(void) {
 glDeleteVertexArrays(1, &arrayObject);
-	glDeleteBuffers(MAX_BUFFER, bufferObject);
 	glDeleteTextures(1, &texture);
 	glDeleteTextures(1, &bumpTexture);
 	delete[] vertices;
@@ -34,19 +33,27 @@ glDeleteVertexArrays(1, &arrayObject);
 	delete[] tangents;
 	delete[] indices;
 	delete[] facesList;
+
+	// Buffers..
+	glDeleteBuffers(MAX_BUFFER, bufferObject);
+	glDeleteBuffers(MAX, verticesInfoSSBO);
+	glDeleteBuffers(1, &facesInfoSSBO);
+	glDeleteBuffers(1, &selectedFacesIDSSBO);
+	glDeleteBuffers(1, &middlePointsSSBO);
+	glDeleteBuffers(1, &spheresSSBO);
 }
 
 Mesh* Mesh::GenerateTriangle() {
 	Mesh * m = new Mesh();
 	m->numFaces = 1;
-	m->numVertices = 3;
+	m->numVertices = m->numTexCoords = m->numNormals = 3;
 
 	m->vertices = new Vector3[m->numVertices];
 	m->vertices[0] = Vector3(0.0f, 0.5f, 0.0f);
 	m->vertices[1] = Vector3(0.5f, -0.5f, 0.0f);
 	m->vertices[2] = Vector3(-0.5f, -0.5f, 0.0f);
 
-	m->textureCoords = new Vector2[m->numVertices];
+	m->textureCoords = new Vector2[m->numTexCoords];
 	m->textureCoords[0] = Vector2(0.5f, 0.0f);
 	m->textureCoords[1] = Vector2(1.0f, 1.0f);
 	m->textureCoords[2] = Vector2(0.0f, 1.0f);
@@ -56,9 +63,11 @@ Mesh* Mesh::GenerateTriangle() {
 	m->colours[1] = Vector4(0.0f, 1.0f, 0.0f, 1.0f);
 	m->colours[2] = Vector4(0.0f, 0.0f, 1.0f, 1.0f);
 
+#ifdef USE_RAY_TRACING
+
 	// Settings the normals and face here..
 	// NOTE: this is just simply for a single triangle..
-	m->normals = new Vector3[m->numVertices];
+	m->normals = new Vector3[m->numNormals];
 	m->facesList = new Triangle[m->numFaces];
 	m->facesList[0] = Triangle();
 	for (int i = 0; i < m->numVertices; ++i) {
@@ -68,20 +77,25 @@ Mesh* Mesh::GenerateTriangle() {
 		m->facesList[0].normalsIndices[i] = i;
 	}
 
+	m->UpdateSSBOs();
+
+#endif // USE_RAY_TRACING
+
 	m->BufferData();
+
 	return m;
 }
 
 Mesh* Mesh::GenerateQuad() {
 	Mesh* m = new Mesh();
 	m->numFaces = 2;
-	m->numVertices = 4;
+	m->numVertices = m->numTexCoords = m->numNormals = 4;
 	m->type = GL_TRIANGLE_STRIP;
 	
 	m->vertices = new Vector3[m->numVertices];
-	m->textureCoords = new Vector2[m->numVertices];
+	m->textureCoords = new Vector2[m->numTexCoords];
 	m->colours = new Vector4[m->numVertices];
-	m->normals = new Vector3[m->numVertices];
+	m->normals = new Vector3[m->numNormals];
 	m->tangents = new Vector3[m->numVertices];
 
 	m->vertices[0] = Vector3(-1.0f, -1.0f, 0.0f);
@@ -172,6 +186,118 @@ void Mesh::BufferData() {
 
 	glBindVertexArray(0);
 }
+
+#ifdef USE_RAY_TRACING
+
+void Mesh::UpdateVerticesSSBOs() {
+	std::vector<Vector4> temp;	// need this to convert vec3 to vec4, otherwise it's not gonna be fun..
+
+	// Positions
+	for (unsigned int i = 0; i < numVertices; ++i) {
+		temp.push_back(Vector4(vertices[i].x, vertices[i].y, vertices[i].z, 1.0));
+	}
+	glGenBuffers(1, &verticesInfoSSBO[POSITION]);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[POSITION]);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(Vector4), temp.data(), GL_DYNAMIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, POSITION, verticesInfoSSBO[POSITION]);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	temp.clear();
+
+	// Perhaps we don't need this..
+	glGenBuffers(1, &verticesInfoSSBO[COLOUR]);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[COLOUR]);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(Vector4), colours, GL_DYNAMIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, COLOUR, verticesInfoSSBO[COLOUR]);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	// Texture coordinates 
+	glGenBuffers(1, &verticesInfoSSBO[TEX_COORD]);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[TEX_COORD]);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, numTexCoords * sizeof(Vector2), textureCoords, GL_DYNAMIC_DRAW);	// change this later..
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, TEX_COORD, verticesInfoSSBO[TEX_COORD]);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	// Normals
+	for (int i = 0; i < numNormals; ++i) {
+		temp.push_back(Vector4(normals[i].x, normals[i].y, normals[i].z, 1.0f));
+	}
+	glGenBuffers(1, &verticesInfoSSBO[NORMAL]);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[NORMAL]);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, numNormals * sizeof(Vector4), temp.data(), GL_DYNAMIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NORMAL, verticesInfoSSBO[NORMAL]);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	temp.clear();
+}
+
+void Mesh::UpdateFacesSSBOs() {
+	// Faces
+	glGenBuffers(1, &facesInfoSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, facesInfoSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, numFaces * sizeof(Triangle), facesList, GL_DYNAMIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX + 1, facesInfoSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	// Face ID 
+	std::vector<GLint> collectedID(numFaces, -1);
+	glGenBuffers(1, &selectedFacesIDSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, selectedFacesIDSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, numFaces * sizeof(GLint), collectedID.data(), GL_DYNAMIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX, selectedFacesIDSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	collectedID.clear();
+
+	// Middle points of the triangles/faces..
+	std::vector<Vector4> middlePoints(numFaces, Vector4());
+	glGenBuffers(1, &middlePointsSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, middlePointsSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, numFaces * sizeof(Vector4), middlePoints.data(), GL_DYNAMIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX + 2, middlePointsSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	middlePoints.clear();
+
+	// Spheres
+	if (numFaces & 1) {
+		numSpheres = numFaces * 0.5 + 1;
+	}
+	else {
+		numSpheres = numFaces * 0.5;
+	}
+
+	std::vector<Sphere> spheres(numSpheres, Sphere());
+	glGenBuffers(1, &spheresSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, spheresSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, numSpheres * sizeof(Sphere), spheres.data(), GL_DYNAMIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX + 3, spheresSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	spheres.clear();
+}
+
+void Mesh::UpdateSSBOs() {
+	UpdateVerticesSSBOs();
+	UpdateFacesSSBOs();
+}
+
+void Mesh::ResetSSBOs() {
+	std::vector<GLint> collectedID(numFaces, -1);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, selectedFacesIDSSBO);
+	glClearBufferData(GL_SHADER_STORAGE_BUFFER, GL_R32I, GL_RED_INTEGER, GL_INT, collectedID.data());
+	collectedID.clear();
+
+	std::vector<Vector4> middlePoints(numFaces, Vector4());
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, middlePointsSSBO);
+	Vector4* p = (Vector4*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
+	memcpy(p, middlePoints.data(), numFaces * sizeof(Vector4));
+	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+	std::vector<Sphere> spheres(numSpheres, Sphere());
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, spheresSSBO);
+	Sphere* sp = (Sphere*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
+	memcpy(sp, spheres.data(), numSpheres * sizeof(Sphere));
+	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+}
+
+#endif // USE_RAY_TRACING
 
 void Mesh::GenerateNormals() {
 	if (!normals) {
