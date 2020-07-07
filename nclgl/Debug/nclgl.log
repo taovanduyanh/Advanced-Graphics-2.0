@@ -1,2 +1,20 @@
-﻿  OBJMesh.cpp
+﻿  Camera.cpp
+  Frustum.cpp
+  HeightMap.cpp
+  MD5Anim.cpp
+  MD5FileData.cpp
+  MD5Mesh.cpp
+  MD5Node.cpp
+  Matrix4.cpp
+  Mesh.cpp
+E:\Misc\Diss 2020\nclgl\Mesh.cpp(64,20): warning C4018: '<': signed/unsigned mismatch
+E:\Misc\Diss 2020\nclgl\Mesh.cpp(105,20): warning C4018: '<': signed/unsigned mismatch
+E:\Misc\Diss 2020\nclgl\Mesh.cpp(181,20): warning C4018: '<': signed/unsigned mismatch
+  OBJMesh.cpp
+  OGLRenderer.cpp
+  Quaternion.cpp
+  SceneNode.cpp
+  Shader.cpp
+  Window.cpp
+  Generating Code...
   nclgl.vcxproj -> E:\Misc\Diss 2020\Graphics For Games\Debug\nclgl.lib

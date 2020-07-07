@@ -28,8 +28,7 @@ time lighting tutorial, uncomment both MD5_USE_NORMALS and MD5_USE_TANGENTS_BUMP
 #define MD5_USE_NORMALS
 #define MD5_USE_TANGENTS_BUMPMAPS
 
-#define OBJ_USE_NORMALS
-#define OBJ_USE_TANGENTS_BUMPMAPS
+#define USE_RAY_TRACING
 
 //It's pi(ish)...
 static const float		PI = 3.14159265358979323846f;	

@@ -121,10 +121,10 @@ bool rayIntersectsTriangle(Ray ray, Triangle triangle) {
 
 bool rayIntersectsSphere(Ray ray, Sphere sphere, int id) {
     float avgScale = (scaleVector.x * scaleVector.y * scaleVector.z); 
-    vec3 oc = ray.origin - sphere.center.xyz;
+    vec3 oc = ray.origin - (modelMatrix * sphere.center).xyz;
     float a = dot(ray.direction, ray.direction);
     float b = dot(oc, ray.direction) * 2.0;
-    float c = dot(oc, oc) - sphere.radius * sphere.radius;
+    float c = dot(oc, oc) - sphere.radius * sphere.radius * avgScale;
     float discriminant = b * b - 4 * a * c;
 
     if (discriminant < 0) {

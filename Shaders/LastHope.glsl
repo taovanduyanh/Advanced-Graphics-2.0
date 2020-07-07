@@ -42,6 +42,6 @@ void main() {
         spheresSSBO[gl_GlobalInvocationID.x].facesID[i] = id;
     }
 
-    spheresSSBO[gl_GlobalInvocationID.x].center = modelMatrix * vec4(middlePointsSSBO[firstIndex] + temp, 1.0);
-    spheresSSBO[gl_GlobalInvocationID.x].radius = length((modelMatrix * vec4(temp, 1.0)).xyz) * 0.3;
+    spheresSSBO[gl_GlobalInvocationID.x].center = vec4(middlePointsSSBO[firstIndex] + temp, 1.0);
+    spheresSSBO[gl_GlobalInvocationID.x].radius = length(temp);
 }

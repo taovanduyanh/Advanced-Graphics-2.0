@@ -1,12 +1,12 @@
 #include "Renderer.h"
 
 Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
-	triangle = Mesh::GenerateCube();
+	//triangle = Mesh::GenerateCube();
+	triangle = new OBJMesh();
+	dynamic_cast<OBJMesh*>(triangle)->LoadOBJMesh(MESHDIR"cube.obj");
 	triangle->SetTexutre(SOIL_load_OGL_texture(TEXTUREDIR"brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
 	//SetTextureRepeating(triangle->GetTexture(), true);
 
-	//triangle = new OBJMesh();
-	//dynamic_cast<OBJMesh*>(triangle)->LoadOBJMesh(MESHDIR"cube.obj");
 	sceneQuad = Mesh::GenerateQuad();
 	camera = new Camera();
 
@@ -43,7 +43,7 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	// Texture coordinates 
 	glGenBuffers(1, &verticesInfoSSBO[TEX_COORD]);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[TEX_COORD]);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, triangle->GetNumVertices() * sizeof(Vector2), triangle->GetTexCoords(), GL_STATIC_DRAW);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, 36 * sizeof(Vector2), triangle->GetTexCoords(), GL_STATIC_DRAW);	// change this later..
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, TEX_COORD, verticesInfoSSBO[TEX_COORD]);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 

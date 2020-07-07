@@ -54,7 +54,7 @@ bool	OBJMesh::LoadOBJMesh(std::string filename)	{
 			f >> currentMtlLib;
 		}
 		else if(currentLine == OBJOBJECT || currentLine == OBJGROUP || currentLine == OBJUSEMTL) {	// these three tags potentially means a new submesh..
-			if (currentMesh->vertIndices.size() != 0) {
+			if (!currentMesh->vertIndices.empty()) {
 				currentMesh = new OBJSubMesh();
 				inputSubMeshes.push_back(currentMesh);
 			}
@@ -189,6 +189,58 @@ bool	OBJMesh::LoadOBJMesh(std::string filename)	{
 
 		m->SetTexturesFromMTL(sm->mtlSrc, sm->mtlType, materials);
 
+		// ray tracing starting from here..
+		// vertices..
+
+// To use this class for rasterization, just go to common.h and comment out the #define USE_RAY_TRACING
+#ifdef USE_RAY_TRACING	
+		m->numVertices = inputVertices.size();
+		m->numFaces = sm->vertIndices.size() / 3;
+
+		m->vertices = new Vector3[m->numVertices];
+		for (unsigned int j = 0; j < m->numVertices; ++j) {
+			m->vertices[j] = inputVertices[j];
+		}
+
+		// texture coordinates..
+		if (!sm->texIndices.empty()) {
+			m->textureCoords = new Vector2[inputTexCoords.size()];
+			for (unsigned int j = 0; j < inputTexCoords.size(); ++j) {
+				m->textureCoords[j] = inputTexCoords[j];
+			}
+		}
+
+		// normals..
+		if (!sm->normIndices.empty()) {
+			m->normals = new Vector3[inputNormals.size()];
+			for (unsigned int j = 0; j < inputNormals.size(); ++j) {
+				m->normals[j] = inputNormals[j];
+			}
+		}
+		else {
+			m->GenerateNormals();
+		}
+
+		// faces/polygons..
+		m->facesList = new Triangle[m->numFaces];
+		for (unsigned int j = 0; j < m->numFaces; ++j) {
+			unsigned int firstIndex = j * 3;
+			m->facesList[j] = Triangle();
+
+			for (unsigned int k = 0; k < 3; ++k) {
+				m->facesList[j].verticesIndices[k] = sm->vertIndices[firstIndex + k] - 1;
+				if (!sm->texIndices.empty()) {
+					m->facesList[j].texCoordsIndices[k] = sm->texIndices[firstIndex + k] - 1;
+				}
+				if (!sm->normIndices.empty()) {
+					m->facesList[j].normalsIndices[k] = sm->normIndices[firstIndex + k] - 1;
+				}
+			}
+		}
+
+		// tangents, do something for it later on..
+		m->GenerateTangents();
+#else
 		m->numVertices = sm->vertIndices.size();
 
 		m->vertices	= new Vector3[m->numVertices];
@@ -203,7 +255,6 @@ bool	OBJMesh::LoadOBJMesh(std::string filename)	{
 			}
 		}
 
-#ifdef OBJ_USE_NORMALS
 		if(sm->normIndices.empty()) {
 			m->GenerateNormals();
 		}
@@ -214,12 +265,11 @@ bool	OBJMesh::LoadOBJMesh(std::string filename)	{
 				m->normals[j] = inputNormals[sm->normIndices[j]-1];
 			}
 		}
-#endif
-#ifdef OBJ_USE_TANGENTS_BUMPMAPS
+
 		m->GenerateTangents();
-#endif
 
 		m->BufferData();
+#endif 
 
 		if(i != 0) {
 			AddChild(m);

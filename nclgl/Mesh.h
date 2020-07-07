@@ -5,8 +5,6 @@ enum MeshBuffer {
 	VERTEX_BUFFER, COLOUR_BUFFER, TEXTURE_BUFFER, NORMAL_BUFFER, TANGENT_BUFFER, INDEX_BUFFER, MAX_BUFFER
 };
 
-
-
 class Mesh {
 public:
 	struct Triangle {
