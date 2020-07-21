@@ -254,11 +254,10 @@ void Mesh::GenerateFacesSSBOs() {
 	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
 
 	// Parent Bounding Box
-	//BoundingBox box = BoundingBox();
-	std::vector<BoundingBox> test(1, BoundingBox());
+	BoundingBox box = BoundingBox();
 	glGenBuffers(1, &parentBoxSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, parentBoxSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(BoundingBox), test.data(), GL_STATIC_DRAW);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(BoundingBox), &box, GL_STATIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 12, parentBoxSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
@@ -295,7 +294,8 @@ void Mesh::ResetSSBOs() {
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, parentBoxSSBO);
 	BoundingBox* parentBox = (BoundingBox*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
-	memcpy(parentBox, &BoundingBox(), sizeof(BoundingBox));
+	BoundingBox box = BoundingBox();
+	memcpy(parentBox, &box, sizeof(BoundingBox));
 	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }

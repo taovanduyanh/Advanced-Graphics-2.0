@@ -3,11 +3,12 @@
 Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	//triangle = Mesh::GenerateQuad();
 	triangle = new OBJMesh();
-	dynamic_cast<OBJMesh*>(triangle)->LoadOBJMesh(MESHDIR"sphere.obj");
+	dynamic_cast<OBJMesh*>(triangle)->LoadOBJMesh(MESHDIR"pyramid.obj");
 	//triangle->SetTexutre(SOIL_load_OGL_texture(TEXTUREDIR"brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
 
 	sceneQuad = Mesh::GenerateQuad();
 	camera = new Camera();
+	camera->SetPosition(Vector3(0, 0, 100));
 
 	// for geometry shader SHADERDIR"TrianglesExtraction.glsl"
 	meshReader = new Shader(SHADERDIR"AnotherCompute.glsl");
@@ -122,7 +123,7 @@ void Renderer::InitRayTracing() {
 
 	UpdateShaderMatrices();
 
-	glDispatchComputeGroupSizeARB(width, height, 1, 1, 1, 1);
+	glDispatchComputeGroupSizeARB(1, height, 1, width, 1, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);	// makes sure the ssbo/image is written before
 
 	glBindTexture(GL_TEXTURE_2D, 0);
