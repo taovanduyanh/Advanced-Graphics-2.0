@@ -3,19 +3,19 @@
 Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	//triangle = Mesh::GenerateQuad();
 	triangle = new OBJMesh();
-	dynamic_cast<OBJMesh*>(triangle)->LoadOBJMesh(MESHDIR"cube.obj");
-	triangle->SetTexutre(SOIL_load_OGL_texture(TEXTUREDIR"brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
+	dynamic_cast<OBJMesh*>(triangle)->LoadOBJMesh(MESHDIR"sphere.obj");
+	//triangle->SetTexutre(SOIL_load_OGL_texture(TEXTUREDIR"brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
 
 	sceneQuad = Mesh::GenerateQuad();
 	camera = new Camera();
 
 	// for geometry shader SHADERDIR"TrianglesExtraction.glsl"
 	meshReader = new Shader(SHADERDIR"AnotherCompute.glsl");
-	lastHope = new Shader(SHADERDIR"LastHope.glsl");
+	testShader = new Shader(SHADERDIR"Testing.glsl");
 	rayTracerShader = new Shader(SHADERDIR"BasicCompute.glsl");
 	finalShader = new Shader(SHADERDIR"TexturedVertex.glsl", SHADERDIR"TexturedFragment.glsl");
 
-	if (!meshReader->LinkProgram() || !lastHope->LinkProgram() || !rayTracerShader->LinkProgram() || !finalShader->LinkProgram()) {
+	if (!meshReader->LinkProgram() || !testShader->LinkProgram() || !rayTracerShader->LinkProgram() || !finalShader->LinkProgram()) {
 		return;
 	}
 
@@ -45,12 +45,11 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	glBindImageTexture(0, image, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
-	// maybe don't needd this anymore..
-	//glEnable(GL_DEPTH_TEST);
+	// maybe don't need this anymore..
+	glEnable(GL_DEPTH_TEST);
 
 	// fov here..
 	fov = 45.0f;
-	showSpheres = false;
 
 	init = true;
 }
@@ -61,7 +60,7 @@ Renderer::~Renderer(void) {
 	delete camera;
 
 	delete meshReader;
-	delete lastHope;
+	delete testShader;
 	delete rayTracerShader;
 	delete finalShader;
 	currentShader = NULL;
@@ -80,10 +79,6 @@ void Renderer::ResetCamera() {
 	camera->SetYaw(0.0f);
 }
 
-void Renderer::ToggleSpheresVisibility() {
-	showSpheres = !showSpheres;
-}
-
 void Renderer::ResetBuffers() {
 	triangle->ResetSSBOs();
 }
@@ -91,17 +86,20 @@ void Renderer::ResetBuffers() {
 void Renderer::InitMeshReading() {
 	SetCurrentShader(meshReader);
 	modelMatrix = Matrix4::Translation(Vector3(0, 0, -50)) * Matrix4::Scale(Vector3(10, 10, 10));
+	UpdateShaderMatrices();
 	Vector3 cameraDirection = modelMatrix.GetPositionVector() - camera->GetPosition();
 	cameraDirection.Normalise();
 	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraDirection"), 1, (float*)&cameraDirection);
 	glDispatchComputeGroupSizeARB(1, 1, 1, triangle->GetNumFaces(), 1, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	triangle->UpdateCollectedID();
 }
 
-void Renderer::InitLastHope() {
-	SetCurrentShader(lastHope);
+void Renderer::InitBoundingBox() {
+	// further testing..
+	SetCurrentShader(testShader);
 	UpdateShaderMatrices();
-	glDispatchComputeGroupSizeARB(1, 1, 1, triangle->GetNumSpheres(), 1, 1);
+	glDispatchComputeGroupSizeARB(1, 1, 1, 1, 1, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
@@ -116,7 +114,6 @@ void Renderer::InitRayTracing() {
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, triangle->GetTexture());
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "diffuse"), 1);
-	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "showSpheres"), showSpheres);
 	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "scaleVector"), 1, (float*)&modelMatrix.GetScalingVector());
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "useTexture"), triangle->GetTexture());
 	glUniform2f(glGetUniformLocation(currentShader->GetProgram(), "pixelSize"), 1.0f / width, 1.0f / height);
@@ -148,7 +145,7 @@ void Renderer::InitFinalScene() {
 void Renderer::RenderScene() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	InitMeshReading();
-	InitLastHope();
+	InitBoundingBox();
 	InitRayTracing();
 	InitFinalScene();
 	SwapBuffers();

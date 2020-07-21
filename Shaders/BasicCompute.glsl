@@ -10,6 +10,10 @@ struct Triangle {
     uint normalsIndices[3];
 };
 
+struct BBox {
+    vec4 bounds[2];
+};
+
 struct Ray {
     vec3 origin;
     vec3 direction;
@@ -20,34 +24,28 @@ struct BarycentricCoord {
     float u, v, w;
 } barycentricCoord;
 
-struct Sphere {
-    vec4 center;
-    uint numFaces;
-    float radius;
-    int facesID[2];
-};
-
 layout(std430, binding = 0) buffer Positions {
-    vec3 posSSBO[];
-};
-
-layout(std430, binding = 1) buffer Colours {
-    vec4 coloursSSBO[];
+    vec4 posSSBO[];
 };
 
 layout(std430, binding = 2) buffer TextureCoords {
     vec2 texCoordsSSBO[];
 };
 
+layout(std430, binding = 5) buffer ID {
+    int idSSBO[];
+};
+
 layout(std430, binding = 6) buffer Faces {
     Triangle facesSSBO[];
 };
 
-layout(std430, binding = 8) buffer Spheres {
-    Sphere spheresSSBO[];
+layout(std430, binding = 12) buffer BoundingBox {
+    BBox parentBoxSSBO;
 };
 
 layout(local_size_variable) in;
+layout(binding = 0, offset = 0) uniform atomic_uint counter;
 
 layout(rgba32f) uniform image2D image;
 uniform sampler2D diffuse;
@@ -58,11 +56,10 @@ uniform vec2 pixelSize;
 uniform vec3 scaleVector;
 uniform vec3 cameraPos;
 uniform float fov;
-uniform bool showSpheres;
 
 float toRadian(float angle);
 bool rayIntersectsTriangle(Ray ray, Triangle triangle);
-bool rayIntersectsSphere(Ray ray, Sphere sphere, int id);
+bool rayIntersectsBox(Ray ray, BBox box);
 vec3 pixelMiddlePoint(ivec2 pixelCoords);
 vec4 getFinalColour(ivec2 pixelCoords);
 
@@ -83,9 +80,9 @@ Don't need to check for the determinatorsince the Mesh reader already handles th
 */
 bool rayIntersectsTriangle(Ray ray, Triangle triangle) {
     // three vertices of the current triangle
-    vec3 v0 = (modelMatrix * vec4(posSSBO[triangle.vertIndices[0]], 1.0)).xyz;
-    vec3 v1 = (modelMatrix * vec4(posSSBO[triangle.vertIndices[1]], 1.0)).xyz;
-    vec3 v2 = (modelMatrix * vec4(posSSBO[triangle.vertIndices[2]], 1.0)).xyz;
+    vec3 v0 = (modelMatrix * posSSBO[triangle.vertIndices[0]]).xyz;
+    vec3 v1 = (modelMatrix * posSSBO[triangle.vertIndices[1]]).xyz;
+    vec3 v2 = (modelMatrix * posSSBO[triangle.vertIndices[2]]).xyz;
 
     vec3 a = v1 - v0;
     vec3 b = v2 - v0;
@@ -119,16 +116,44 @@ bool rayIntersectsTriangle(Ray ray, Triangle triangle) {
     return true;
 }
 
-bool rayIntersectsSphere(Ray ray, Sphere sphere, int id) {
-    float avgScale = (scaleVector.x * scaleVector.y * scaleVector.z); 
-    vec3 oc = ray.origin - (modelMatrix * sphere.center).xyz;
-    float a = dot(ray.direction, ray.direction);
-    float b = dot(oc, ray.direction) * 2.0;
-    float c = dot(oc, oc) - sphere.radius * sphere.radius * avgScale;
-    float discriminant = b * b - 4 * a * c;
+bool rayIntersectsBox(Ray ray, BBox box) {
+    vec3 rayInvDir = 1 / ray.direction;
 
-    if (discriminant < 0) {
+    int signs[3];   // for x, y, z..
+    signs[0] = int(rayInvDir.x < 0);
+    signs[1] = int(rayInvDir.y < 0);
+    signs[2] = int(rayInvDir.z < 0);
+
+    float tmin, tmax, tymin, tymax, tzmin, tzmax;
+    
+    tmin = (box.bounds[signs[0]].x - ray.origin.x) * rayInvDir.x;
+    tmax = (box.bounds[1 - signs[0]].x - ray.origin.x) * rayInvDir.x;
+
+    tymin = (box.bounds[signs[1]].y - ray.origin.y) * rayInvDir.y;
+    tymax = (box.bounds[1 - signs[1]].y - ray.origin.y) * rayInvDir.y;
+
+    if ((tmin > tymax) || (tymin > tmax)) {
         return false;
+    }
+
+    if (tymin > tmin) {
+        tmin = tymin;
+    }
+    if (tymax < tmax) {
+        tmax = tymax; 
+    }
+
+    tzmin = (box.bounds[signs[2]].z - ray.origin.z) * rayInvDir.z;
+    tzmax = (box.bounds[1 - signs[2]].z - ray.origin.z) * rayInvDir.z;
+
+    if ((tmin > tzmax) || (tzmin > tmax)) {
+        return false;
+    }
+    if (tzmin > tmin) {
+        tmin = tzmin;
+    }
+    if (tzmax < tmax) {
+        tmax = tzmax;
     }
 
     return true;
@@ -165,29 +190,24 @@ vec4 getFinalColour(ivec2 pixelCoords) {
     ray.direction = normalize((inverseViewMatrix * vec4(middlePoint, 1.0)).xyz - ray.origin);
     
     // IT WORKS!!!
-    for (int i = 0; i < spheresSSBO.length(); ++i) {
-        if (spheresSSBO[i].numFaces > 0 && rayIntersectsSphere(ray, spheresSSBO[i], i)) {
-            if (showSpheres) {
-                finalColour += vec4(0.0, 0.15, 0.0, 1.0);
-            }
-            
-            for (int j = 0; j < spheresSSBO[i].numFaces; ++j) {
-                int triangleID = spheresSSBO[i].facesID[j];
-                if (triangleID != -1 && rayIntersectsTriangle(ray, facesSSBO[triangleID])) {
-                    if (useTexture > 0) {
-                        vec2 tc0 = texCoordsSSBO[facesSSBO[triangleID].texIndices[0]];
-                        vec2 tc1 = texCoordsSSBO[facesSSBO[triangleID].texIndices[1]];
-                        vec2 tc2 = texCoordsSSBO[facesSSBO[triangleID].texIndices[2]];
-                        vec2 texCoord = barycentricCoord.w * tc0 + barycentricCoord.u * tc1 + barycentricCoord.v * tc2;
-                        return texture(diffuse, texCoord);
-                    }
-                    else {
-                        return vec4(barycentricCoord.u, barycentricCoord.v, barycentricCoord.w, 1.0);
-                    }
+    // We're now using bounding box instead
+    // Note: there currently a parent box..
+    if (rayIntersectsBox(ray, parentBoxSSBO)) {
+        for (int i = 0; i < atomicCounter(counter); ++i) {
+            if (rayIntersectsTriangle(ray, facesSSBO[idSSBO[i]])) {
+                if (useTexture > 0) {
+                    vec2 tc0 = texCoordsSSBO[facesSSBO[idSSBO[i]].texIndices[0]];
+                    vec2 tc1 = texCoordsSSBO[facesSSBO[idSSBO[i]].texIndices[1]];
+                    vec2 tc2 = texCoordsSSBO[facesSSBO[idSSBO[i]].texIndices[2]];
+                    vec2 texCoord = barycentricCoord.w * tc0 + barycentricCoord.u * tc1 + barycentricCoord.v * tc2;
+                    return texture(diffuse, texCoord);
                 }
-            }  
+                else {
+                    return vec4(barycentricCoord.u, barycentricCoord.v, barycentricCoord.w, 1.0);
+                }
+            }
         }
     }
-    
+
     return finalColour;
 }

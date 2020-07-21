@@ -1,8 +1,26 @@
-﻿  Mesh.cpp
+﻿  Camera.cpp
+  Frustum.cpp
+  GameTimer.cpp
+  HeightMap.cpp
+  Keyboard.cpp
+  Matrix4.cpp
+  MD5Anim.cpp
+  MD5FileData.cpp
+  MD5Mesh.cpp
+  MD5Node.cpp
+  Mesh.cpp
 E:\Misc\Diss 2020\nclgl\Mesh.cpp(73,20): warning C4018: '<': signed/unsigned mismatch
 E:\Misc\Diss 2020\nclgl\Mesh.cpp(119,20): warning C4018: '<': signed/unsigned mismatch
 E:\Misc\Diss 2020\nclgl\Mesh.cpp(221,20): warning C4018: '<': signed/unsigned mismatch
-E:\Misc\Diss 2020\nclgl\Mesh.cpp(260,31): warning C4244: '=': conversion from 'double' to 'GLuint', possible loss of data
-E:\Misc\Diss 2020\nclgl\Mesh.cpp(263,25): warning C4244: '=': conversion from 'double' to 'GLuint', possible loss of data
-E:\Misc\Diss 2020\nclgl\Mesh.cpp(307,20): warning C4018: '<': signed/unsigned mismatch
+E:\Misc\Diss 2020\nclgl\Mesh.cpp(275,20): warning C4018: '<': signed/unsigned mismatch
+E:\Misc\Diss 2020\nclgl\Mesh.cpp(310,20): warning C4018: '<': signed/unsigned mismatch
+  Mouse.cpp
+  OBJMesh.cpp
+  OGLRenderer.cpp
+  Plane.cpp
+  Quaternion.cpp
+  SceneNode.cpp
+  Shader.cpp
+  Window.cpp
+  Generating Code...
   nclgl.vcxproj -> E:\Misc\Diss 2020\Graphics For Games\Debug\nclgl.lib

@@ -39,8 +39,8 @@ glDeleteVertexArrays(1, &arrayObject);
 	glDeleteBuffers(MAX, verticesInfoSSBO);
 	glDeleteBuffers(1, &facesInfoSSBO);
 	glDeleteBuffers(1, &selectedFacesIDSSBO);
-	glDeleteBuffers(1, &middlePointsSSBO);
-	glDeleteBuffers(1, &spheresSSBO);
+	glDeleteBuffers(1, &idAtomicCounter);
+	glDeleteBuffers(1, &parentBoxSSBO);
 }
 
 Mesh* Mesh::GenerateTriangle() {
@@ -77,7 +77,7 @@ Mesh* Mesh::GenerateTriangle() {
 		m->facesList[0].normalsIndices[i] = i;
 	}
 
-	m->UpdateSSBOs();
+	m->GenerateSSBOs();
 
 #endif // USE_RAY_TRACING
 
@@ -189,7 +189,7 @@ void Mesh::BufferData() {
 
 #ifdef USE_RAY_TRACING
 
-void Mesh::UpdateVerticesSSBOs() {
+void Mesh::GenerateVerticesSSBOs() {
 	std::vector<Vector4> temp;	// need this to convert vec3 to vec4, otherwise it's not gonna be fun..
 
 	// Positions
@@ -229,7 +229,7 @@ void Mesh::UpdateVerticesSSBOs() {
 	temp.clear();
 }
 
-void Mesh::UpdateFacesSSBOs() {
+void Mesh::GenerateFacesSSBOs() {
 	// Faces
 	glGenBuffers(1, &facesInfoSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, facesInfoSSBO);
@@ -246,35 +246,41 @@ void Mesh::UpdateFacesSSBOs() {
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	collectedID.clear();
 
-	// Middle points of the triangles/faces..
-	std::vector<Vector4> middlePoints(numFaces, Vector4());
-	glGenBuffers(1, &middlePointsSSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, middlePointsSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, numFaces * sizeof(Vector4), middlePoints.data(), GL_DYNAMIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX + 2, middlePointsSSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-	middlePoints.clear();
+	// Atomic counter
+	glGenBuffers(1, &idAtomicCounter);
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, idAtomicCounter);
+	glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), 0, GL_STATIC_DRAW);
+	glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, idAtomicCounter);
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
 
-	// Spheres
-	if (numFaces & 1) {
-		numSpheres = numFaces * 0.5 + 1;
-	}
-	else {
-		numSpheres = numFaces * 0.5;
-	}
-
-	std::vector<Sphere> spheres(numSpheres, Sphere());
-	glGenBuffers(1, &spheresSSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, spheresSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, numSpheres * sizeof(Sphere), spheres.data(), GL_DYNAMIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX + 3, spheresSSBO);
+	// Parent Bounding Box
+	//BoundingBox box = BoundingBox();
+	std::vector<BoundingBox> test(1, BoundingBox());
+	glGenBuffers(1, &parentBoxSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, parentBoxSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(BoundingBox), test.data(), GL_STATIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 12, parentBoxSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-	spheres.clear();
 }
 
-void Mesh::UpdateSSBOs() {
-	UpdateVerticesSSBOs();
-	UpdateFacesSSBOs();
+void Mesh::GenerateSSBOs() {
+	GenerateVerticesSSBOs();
+	GenerateFacesSSBOs();
+}
+
+void Mesh::UpdateCollectedID() {
+	std::vector<GLint> collectedID;
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, selectedFacesIDSSBO);
+	GLint* ptr = (GLint*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
+	for (int i = 0; i < numFaces; ++i) {
+		if (ptr[i] != -1) {
+			collectedID.push_back(ptr[i]);
+		}
+	}
+	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, collectedID.size() * sizeof(GLint), collectedID.data());
+	collectedID.clear();
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
 void Mesh::ResetSSBOs() {
@@ -283,16 +289,13 @@ void Mesh::ResetSSBOs() {
 	glClearBufferData(GL_SHADER_STORAGE_BUFFER, GL_R32I, GL_RED_INTEGER, GL_INT, collectedID.data());
 	collectedID.clear();
 
-	std::vector<Vector4> middlePoints(numFaces, Vector4());
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, middlePointsSSBO);
-	Vector4* p = (Vector4*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
-	memcpy(p, middlePoints.data(), numFaces * sizeof(Vector4));
-	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, idAtomicCounter);
+	glClearBufferData(GL_ATOMIC_COUNTER_BUFFER, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, 0);
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
 
-	std::vector<Sphere> spheres(numSpheres, Sphere());
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, spheresSSBO);
-	Sphere* sp = (Sphere*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
-	memcpy(sp, spheres.data(), numSpheres * sizeof(Sphere));
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, parentBoxSSBO);
+	BoundingBox* parentBox = (BoundingBox*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
+	memcpy(parentBox, &BoundingBox(), sizeof(BoundingBox));
 	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }

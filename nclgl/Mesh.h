@@ -14,11 +14,8 @@ struct Triangle {
 	GLuint normalsIndices[3];
 };
 
-struct Sphere {
-	GLuint numFaces;
-	float radius;
-	Vector4 center;
-	GLint facesID[2];
+struct BoundingBox {
+	Vector4 boundVectors[2];
 };
 
 #endif // USE_RAY_TRACING
@@ -49,7 +46,8 @@ public:
 
 	// Mainly for compute shaders..
 	GLuint GetNumFaces() const { return numFaces; }
-	GLuint GetNumSpheres() const { return numSpheres; }
+
+	void UpdateCollectedID();
 
 #endif // USE_RAY_TRACING
 
@@ -87,18 +85,19 @@ protected:
 #ifdef USE_RAY_TRACING
 
 	// For SSBOs..
-	void UpdateVerticesSSBOs();
-	void UpdateFacesSSBOs();
-	void UpdateSSBOs();
+	void GenerateVerticesSSBOs();
+	void GenerateFacesSSBOs();
+	void GenerateSSBOs();
 
 	GLuint numFaces;
-	GLuint numSpheres;
 
 	GLuint verticesInfoSSBO[MAX];
 	GLuint facesInfoSSBO;
 	GLuint selectedFacesIDSSBO;
-	GLuint middlePointsSSBO;
-	GLuint spheresSSBO;
+
+	// further testing..
+	GLuint idAtomicCounter;
+	GLuint parentBoxSSBO;
 
 	// A triangle/face always has three vertices.. 
 	// Note that some OBJ meshes only have positions 

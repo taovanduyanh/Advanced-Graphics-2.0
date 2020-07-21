@@ -1,9 +1,4 @@
-﻿  CubeRobot.cpp
-  Renderer.cpp
-  Tutorial6.cpp
-  Generating Code...
-  LINK : E:\Misc\Diss 2020\Graphics For Games\Debug\Tutorial 06 - Scene Graph.exe not found or not built by the last incremental link; performing full link
-LINK : warning LNK4286: symbol '___glewGetUniformLocation' defined in 'glew32.lib(glew.obj)' is imported by 'Renderer.obj'
+﻿LINK : warning LNK4286: symbol '___glewGetUniformLocation' defined in 'glew32.lib(glew.obj)' is imported by 'Renderer.obj'
 LINK : warning LNK4286: symbol '___glewUniform1i' defined in 'glew32.lib(glew.obj)' is imported by 'Renderer.obj'
 LINK : warning LNK4286: symbol '___glewUniform4fv' defined in 'glew32.lib(glew.obj)' is imported by 'Renderer.obj'
 LINK : warning LNK4286: symbol '___glewUniformMatrix4fv' defined in 'glew32.lib(glew.obj)' is imported by 'Renderer.obj'

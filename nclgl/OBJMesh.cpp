@@ -242,7 +242,7 @@ bool	OBJMesh::LoadOBJMesh(std::string filename)	{
 
 		// tangents, do something for it later on..
 		//m->GenerateTangents();
-		m->UpdateSSBOs();
+		m->GenerateSSBOs();
 #else
 		m->numVertices = sm->vertIndices.size();
 

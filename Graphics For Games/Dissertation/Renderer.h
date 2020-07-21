@@ -14,11 +14,10 @@ public:
 	virtual void RenderScene();
 
 	void ResetCamera();
-	void ToggleSpheresVisibility();
 
 protected:
 	void InitMeshReading();
-	void InitLastHope();
+	void InitBoundingBox();
 	void InitRayTracing();
 	void InitFinalScene();
 
@@ -36,12 +35,11 @@ protected:
 	// testing..
 	float fov;
 	Shader* meshReader;	
-	Shader* lastHope;
 	Shader* rayTracerShader;
 	Shader* finalShader;
 
-	GLuint image;
+	// further testing..
+	Shader* testShader;
 
-	// For debugging/seeing the spheres..
-	bool showSpheres;
+	GLuint image;
 };

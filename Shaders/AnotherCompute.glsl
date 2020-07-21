@@ -9,7 +9,7 @@ struct Triangle {
 };
 
 layout(std430, binding = 0) buffer Positions {
-    vec3 posSSBO[];
+    vec4 posSSBO[];
 };
 
 layout(std430, binding = 5) buffer ID {
@@ -20,29 +20,23 @@ layout(std430, binding = 6) buffer Faces {
     Triangle facesSSBO[];
 };
 
-layout(std430, binding = 7) buffer MiddlePoints {
-    vec3 middlePointsSSBO[];
-};
-
+uniform mat4 modelMatrix;
 uniform vec3 cameraDirection;
 
 layout(local_size_variable) in;
+layout(binding = 0, offset = 0) uniform atomic_uint counter;
 
 void main() {
-    vec3 v0 = posSSBO[facesSSBO[gl_GlobalInvocationID.x].vertIndices[0]];
-    vec3 v1 = posSSBO[facesSSBO[gl_GlobalInvocationID.x].vertIndices[1]];
-    vec3 v2 = posSSBO[facesSSBO[gl_GlobalInvocationID.x].vertIndices[2]];
+    vec4 v0 = posSSBO[facesSSBO[gl_GlobalInvocationID.x].vertIndices[0]];
+    vec4 v1 = posSSBO[facesSSBO[gl_GlobalInvocationID.x].vertIndices[1]];
+    vec4 v2 = posSSBO[facesSSBO[gl_GlobalInvocationID.x].vertIndices[2]];
 
-    vec3 a = v1 - v0;
-    vec3 b = v2 - v0;
-    vec3 normal = normalize(cross(a, b));
+    vec4 a = v1 - v0;
+    vec4 b = v2 - v0;
+    vec3 normal = normalize(cross(a.xyz, b.xyz));
 
     if (dot(normalize(cameraDirection), normal) < 0) {
         idSSBO[gl_GlobalInvocationID.x] = int(gl_GlobalInvocationID.x); 
+        atomicCounterIncrement(counter);
     }
-
-    middlePointsSSBO[gl_GlobalInvocationID.x] = vec3((v0.x + v1.x + v2.x) / 3,
-                                                     (v0.y + v1.y + v2.y) / 3, 
-                                                     (v0.z + v1.z + v2.z) / 3);
-
 }

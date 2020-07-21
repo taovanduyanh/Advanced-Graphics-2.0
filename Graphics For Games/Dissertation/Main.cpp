@@ -24,9 +24,6 @@ int main() {
 		if (Window::GetKeyboard()->KeyTriggered(KEYBOARD_R)) {
 			renderer.ResetCamera();
 		}
-		if (Window::GetKeyboard()->KeyTriggered(KEYBOARD_Q)) {
-			renderer.ToggleSpheresVisibility();
-		}
 	}
 
 	return 0;
