@@ -13,6 +13,9 @@ Description:Creates and handles the Window, including the initialisation of the 
 #include <stdio.h>
 #include <fcntl.h>
 
+// testing..
+#include <wtypes.h>
+
 #include "OGLRenderer.h"
 #include "Keyboard.h"
 #include "Mouse.h"

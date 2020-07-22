@@ -3,14 +3,14 @@
 Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	//triangle = Mesh::GenerateQuad();
 	triangle = new OBJMesh();
-	dynamic_cast<OBJMesh*>(triangle)->LoadOBJMesh(MESHDIR"pyramid.obj");
-	//triangle->SetTexutre(SOIL_load_OGL_texture(TEXTUREDIR"brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
+	dynamic_cast<OBJMesh*>(triangle)->LoadOBJMesh(MESHDIR"cube.obj");
+	triangle->SetTexutre(SOIL_load_OGL_texture(TEXTUREDIR"brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
 
 	sceneQuad = Mesh::GenerateQuad();
 	camera = new Camera();
-	camera->SetPosition(Vector3(0, 0, 100));
+	//camera->SetPosition(Vector3(150, 250, 7500));
 
-	// for geometry shader SHADERDIR"TrianglesExtraction.glsl"
+	// shaders..
 	meshReader = new Shader(SHADERDIR"AnotherCompute.glsl");
 	testShader = new Shader(SHADERDIR"Testing.glsl");
 	rayTracerShader = new Shader(SHADERDIR"BasicCompute.glsl");
@@ -52,6 +52,11 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	// fov here..
 	fov = 45.0f;
 
+	// further testing..
+	rayTracerNoInvo = std::round(std::sqrt(static_cast<double>(maxWorkItemsPerGroup)));
+	rayTracerNoGroups[0] = std::round(static_cast<double>(width / rayTracerNoInvo)) + 1;
+	rayTracerNoGroups[1] = std::round(static_cast<double>(height / rayTracerNoInvo)) + 1;
+
 	init = true;
 }
 
@@ -86,7 +91,7 @@ void Renderer::ResetBuffers() {
 
 void Renderer::InitMeshReading() {
 	SetCurrentShader(meshReader);
-	modelMatrix = Matrix4::Translation(Vector3(0, 0, -50)) * Matrix4::Scale(Vector3(10, 10, 10));
+	modelMatrix = Matrix4::Translation(Vector3(0, 0, -10));
 	UpdateShaderMatrices();
 	Vector3 cameraDirection = modelMatrix.GetPositionVector() - camera->GetPosition();
 	cameraDirection.Normalise();
@@ -123,7 +128,9 @@ void Renderer::InitRayTracing() {
 
 	UpdateShaderMatrices();
 
-	glDispatchComputeGroupSizeARB(1, height, 1, width, 1, 1);
+	unsigned int test = width * height;
+
+	glDispatchComputeGroupSizeARB(rayTracerNoGroups[0], rayTracerNoGroups[1], 1, rayTracerNoInvo, rayTracerNoInvo, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);	// makes sure the ssbo/image is written before
 
 	glBindTexture(GL_TEXTURE_2D, 0);

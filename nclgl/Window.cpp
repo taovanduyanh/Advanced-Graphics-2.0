@@ -21,8 +21,12 @@ Window::Window(std::string title, int sizeX, int sizeY, bool fullScreen)	{
 
 	size.x = (float)sizeX; size.y = (float)sizeY;
 
-	fullScreen ? position.x = 0.0f : position.x = 100.0f;
-	fullScreen ? position.y = 0.0f : position.y = 100.0f;
+	// testing..
+	RECT desktop;
+	GetWindowRect(GetDesktopWindow(), &desktop);
+
+	fullScreen ? position.x = 0.0f : position.x = static_cast<float>(desktop.right) * 0.5f - static_cast<float>(sizeX) * 0.5f;
+	fullScreen ? position.y = 0.0f : position.y = static_cast<float>(desktop.bottom) * 0.5f - static_cast<float>(sizeY) * 0.5f;
 
 	HINSTANCE hInstance = GetModuleHandle( NULL );
 

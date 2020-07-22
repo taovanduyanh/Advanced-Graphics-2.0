@@ -22,12 +22,14 @@ public:
 	Camera(void){
 		yaw		= 0.0f;
 		pitch	= 0.0f;
+		speed   = 0.5f;
 	};
 
-	Camera(float pitch, float yaw, Vector3 position){
+	Camera(float pitch, float yaw, Vector3 position, float speed = 0.5f){
 		this->pitch		= pitch;
 		this->yaw		= yaw;
 		this->position	= position;
+		this->speed = speed;
 	}
 
 	~Camera(void){};
@@ -53,7 +55,13 @@ public:
 	//Sets pitch, in degrees
 	void	SetPitch(float p) {pitch = p;}
 
+	//Gets camera's speed
+	float GetCameraSpeed() const { return speed; }
+	//Sets camera's speed
+	void SetCameraSpeed(float s) { speed = s; }
+
 protected:
+	float	speed;
 	float	yaw;
 	float	pitch;
 	Vector3 position;

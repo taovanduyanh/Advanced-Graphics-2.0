@@ -41,5 +41,9 @@ protected:
 	// further testing..
 	Shader* testShader;
 
+	// further testing 2..
+	GLuint rayTracerNoInvo;
+	GLuint rayTracerNoGroups[2]; // for both group x and y
+
 	GLuint image;
 };

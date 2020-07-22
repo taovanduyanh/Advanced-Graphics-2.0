@@ -66,6 +66,12 @@ vec4 getFinalColour(ivec2 pixelCoords);
 // NOTE: Remember to remove the unecessary comment later
 
 void main() {
+    // check first..
+    ivec2 imageSize = imageSize(image);
+    if ((gl_GlobalInvocationID.x >= imageSize.x) || (gl_GlobalInvocationID.y >= imageSize.y)) {
+        return;
+    }
+
     // coordinate in pixels
     ivec2 pixelCoords = ivec2(gl_GlobalInvocationID.xy);
     vec4 finalColour = getFinalColour(pixelCoords);

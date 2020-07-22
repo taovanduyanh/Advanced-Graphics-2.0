@@ -1,7 +1,2 @@
-﻿  Mesh.cpp
-E:\Misc\Diss 2020\nclgl\Mesh.cpp(73,20): warning C4018: '<': signed/unsigned mismatch
-E:\Misc\Diss 2020\nclgl\Mesh.cpp(119,20): warning C4018: '<': signed/unsigned mismatch
-E:\Misc\Diss 2020\nclgl\Mesh.cpp(221,20): warning C4018: '<': signed/unsigned mismatch
-E:\Misc\Diss 2020\nclgl\Mesh.cpp(274,20): warning C4018: '<': signed/unsigned mismatch
-E:\Misc\Diss 2020\nclgl\Mesh.cpp(310,20): warning C4018: '<': signed/unsigned mismatch
+﻿  Camera.cpp
   nclgl.vcxproj -> E:\Misc\Diss 2020\Graphics For Games\Debug\nclgl.lib
