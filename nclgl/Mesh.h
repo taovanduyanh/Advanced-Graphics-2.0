@@ -53,7 +53,6 @@ public:
 
 protected:
 	void BufferData();
-	void ClearData();
 	void GenerateNormals();
 	Vector3 GenerateTangent(const Vector3& a, const Vector3& b, const Vector3& c, const Vector2& ta, const Vector2& tb, const Vector2& tc);
 	void GenerateTangents();
@@ -76,12 +75,6 @@ protected:
 	GLuint type;
 
 	// vertex data..
-	//Vector3* vertices;
-	//Vector4* colours;
-	//Vector2* textureCoords;
-	//Vector3* normals;
-	//Vector3* tangents;
-	//GLuint* indices;
 	std::vector<Vector3>* vertices;
 	std::vector<Vector4>* colours;
 	std::vector<Vector2>* textureCoords;
@@ -110,6 +103,6 @@ protected:
 	// Note that some OBJ meshes only have positions 
 	// And all of them have number of faces (assumed)
 	std::vector<Triangle>* facesList;
-	//Triangle* facesList;
+
 #endif // USE_RAY_TRACING
 };

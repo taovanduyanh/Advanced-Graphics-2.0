@@ -31,8 +31,17 @@ Mesh::~Mesh(void) {
 	glDeleteVertexArrays(1, &arrayObject);
 	glDeleteTextures(1, &texture);
 	glDeleteTextures(1, &bumpTexture);
-	// NOTE: the buffer data is deleted elsewhere, since once we buffer the data,
-	// there is no need for them to be stored on the heap memory anymore..
+
+	// data..
+	delete vertices;
+#ifdef USE_RAY_TRACING
+	delete facesList;
+#endif // USE_RAY_TRACING
+	delete colours;
+	delete textureCoords;
+	delete normals;
+	delete tangents;
+	delete indices;
 
 	// Buffers..
 	glDeleteBuffers(MAX_BUFFER, bufferObject);
@@ -190,38 +199,6 @@ void Mesh::BufferData() {
 	}
 
 	glBindVertexArray(0);
-	ClearData();	// probably bad idea when dealing with dynamic mesh?
-}
-
-void Mesh::ClearData() {
-	delete vertices;
-	vertices = NULL;
-
-#ifdef USE_RAY_TRACING
-	delete facesList;
-	facesList = NULL;
-#endif // USE_RAY_TRACING
-
-	if (colours) {
-		delete colours;
-		colours = NULL;
-	}
-	if (textureCoords) {
-		delete textureCoords;
-		textureCoords = NULL;
-	}
-	if (normals) {
-		delete normals;
-		normals = NULL;
-	}
-	if (tangents) {
-		delete tangents;
-		tangents = NULL;
-	}
-	if (indices) {
-		delete indices;
-		indices = NULL;
-	}
 }
 
 #ifdef USE_RAY_TRACING
@@ -306,7 +283,6 @@ void Mesh::GenerateFacesSSBOs() {
 void Mesh::GenerateSSBOs() {
 	GenerateVerticesSSBOs();
 	GenerateFacesSSBOs();
-	ClearData();
 }
 
 void Mesh::UpdateCollectedID() {
