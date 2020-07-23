@@ -9,9 +9,9 @@ HeightMap::HeightMap(string name) {
 
 	numVertices = RAW_WIDTH * RAW_HEIGHT;
 	numIndices = (RAW_WIDTH - 1) * (RAW_HEIGHT - 1) * 6;
-	vertices = new Vector3[numVertices];
-	textureCoords = new Vector2[numVertices];
-	indices = new GLuint[numIndices];
+	vertices = new std::vector<Vector3>(numVertices);
+	textureCoords = new std::vector<Vector2>(numVertices);
+	indices = new std::vector<GLuint>(numIndices);
 
 	unsigned char* data = new unsigned char[numVertices];
 	file.read((char*)data, numVertices * sizeof(unsigned char));
@@ -21,8 +21,8 @@ HeightMap::HeightMap(string name) {
 		for (int z = 0; z < RAW_HEIGHT; ++z) {
 			int offset = (x * RAW_WIDTH) + z;
 
-			vertices[offset] = Vector3(x * HEIGHTMAP_X, data[offset] * HEIGHTMAP_Y, z * HEIGHTMAP_Z);
-			textureCoords[offset] = Vector2(x * HEIGHTMAP_TEX_X, z * HEIGHTMAP_TEX_Z);
+			vertices->at(offset) = Vector3(x * HEIGHTMAP_X, data[offset] * HEIGHTMAP_Y, z * HEIGHTMAP_Z);
+			textureCoords->at(offset) = Vector2(x * HEIGHTMAP_TEX_X, z * HEIGHTMAP_TEX_Z);
 		}
 	}
 
@@ -37,13 +37,13 @@ HeightMap::HeightMap(string name) {
 			int c = (x + 1) * RAW_WIDTH + z + 1;
 			int d = x * RAW_WIDTH + z + 1;
 
-			indices[numIndices++] = c;
-			indices[numIndices++] = b;
-			indices[numIndices++] = a;
+			indices->at(numIndices++) = c;
+			indices->at(numIndices++) = b;
+			indices->at(numIndices++) = a;
 
-			indices[numIndices++] = a;
-			indices[numIndices++] = d;
-			indices[numIndices++] = c;
+			indices->at(numIndices++) = a;
+			indices->at(numIndices++) = d;
+			indices->at(numIndices++) = c;
 		} 
 	}
 

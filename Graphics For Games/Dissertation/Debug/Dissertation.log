@@ -1,9 +1,1 @@
-﻿  Main.cpp
-  Renderer.cpp
-E:\Misc\Diss 2020\Graphics For Games\Dissertation\Renderer.cpp(56,30): warning C4244: '=': conversion from 'double' to 'GLuint', possible loss of data
-E:\Misc\Diss 2020\Graphics For Games\Dissertation\Renderer.cpp(57,82): warning C4244: '=': conversion from 'double' to 'GLuint', possible loss of data
-E:\Misc\Diss 2020\Graphics For Games\Dissertation\Renderer.cpp(58,83): warning C4244: '=': conversion from 'double' to 'GLuint', possible loss of data
-E:\Misc\Diss 2020\Graphics For Games\Dissertation\Renderer.cpp(105,21): warning C4018: '>': signed/unsigned mismatch
-E:\Misc\Diss 2020\Graphics For Games\Dissertation\Renderer.cpp(106,90): warning C4244: '=': conversion from 'double' to 'GLuint', possible loss of data
-  Generating Code...
-  Dissertation.vcxproj -> E:\Misc\Diss 2020\Graphics For Games\Debug\Dissertation.exe
+﻿  Dissertation.vcxproj -> E:\Misc\Diss 2020\Graphics For Games\Debug\Dissertation.exe

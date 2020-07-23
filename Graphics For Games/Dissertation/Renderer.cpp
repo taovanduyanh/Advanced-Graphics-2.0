@@ -3,7 +3,7 @@
 Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	//triangle = Mesh::GenerateQuad();
 	triangle = new OBJMesh();
-	dynamic_cast<OBJMesh*>(triangle)->LoadOBJMesh(MESHDIR"sphere.obj");
+	dynamic_cast<OBJMesh*>(triangle)->LoadOBJMesh(MESHDIR"centeredcube.obj");
 	//triangle->SetTexutre(SOIL_load_OGL_texture(TEXTUREDIR"brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
 
 	sceneQuad = Mesh::GenerateQuad();
