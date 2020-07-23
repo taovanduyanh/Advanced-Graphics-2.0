@@ -3,8 +3,8 @@
 Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	//triangle = Mesh::GenerateQuad();
 	triangle = new OBJMesh();
-	dynamic_cast<OBJMesh*>(triangle)->LoadOBJMesh(MESHDIR"cube.obj");
-	triangle->SetTexutre(SOIL_load_OGL_texture(TEXTUREDIR"brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
+	dynamic_cast<OBJMesh*>(triangle)->LoadOBJMesh(MESHDIR"sphere.obj");
+	//triangle->SetTexutre(SOIL_load_OGL_texture(TEXTUREDIR"brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
 
 	sceneQuad = Mesh::GenerateQuad();
 	camera = new Camera();
@@ -91,12 +91,23 @@ void Renderer::ResetBuffers() {
 
 void Renderer::InitMeshReading() {
 	SetCurrentShader(meshReader);
-	modelMatrix = Matrix4::Translation(Vector3(0, 0, -10));
+	modelMatrix = Matrix4::Translation(Vector3(0, 0, -7));
 	UpdateShaderMatrices();
 	Vector3 cameraDirection = modelMatrix.GetPositionVector() - camera->GetPosition();
 	cameraDirection.Normalise();
 	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraDirection"), 1, (float*)&cameraDirection);
-	glDispatchComputeGroupSizeARB(1, 1, 1, triangle->GetNumFaces(), 1, 1);
+	glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numTriangles"), triangle->GetNumFaces());
+
+	// Dividing the work here..
+	GLuint numWorkGroups = 1;
+	GLuint numInvocations = triangle->GetNumFaces();
+
+	if (numInvocations > maxWorkItemsPerGroup) {
+		numWorkGroups = std::round(static_cast<double>(numInvocations / maxWorkItemsPerGroup)) + 1;
+		numInvocations = maxWorkItemsPerGroup;
+	}
+
+	glDispatchComputeGroupSizeARB(numWorkGroups, 1, 1, numInvocations, 1, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 	triangle->UpdateCollectedID();
 }
@@ -127,8 +138,6 @@ void Renderer::InitRayTracing() {
 	glUniform1f(glGetUniformLocation(currentShader->GetProgram(), "fov"), fov);
 
 	UpdateShaderMatrices();
-
-	unsigned int test = width * height;
 
 	glDispatchComputeGroupSizeARB(rayTracerNoGroups[0], rayTracerNoGroups[1], 1, rayTracerNoInvo, rayTracerNoInvo, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);	// makes sure the ssbo/image is written before

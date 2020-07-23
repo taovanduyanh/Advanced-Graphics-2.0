@@ -22,11 +22,16 @@ layout(std430, binding = 6) buffer Faces {
 
 uniform mat4 modelMatrix;
 uniform vec3 cameraDirection;
+uniform uint numTriangles;
 
 layout(local_size_variable) in;
 layout(binding = 0, offset = 0) uniform atomic_uint counter;
 
 void main() {
+    if (gl_GlobalInvocationID.x >= numTriangles) {
+        return;
+    }
+
     vec4 v0 = posSSBO[facesSSBO[gl_GlobalInvocationID.x].vertIndices[0]];
     vec4 v1 = posSSBO[facesSSBO[gl_GlobalInvocationID.x].vertIndices[1]];
     vec4 v2 = posSSBO[facesSSBO[gl_GlobalInvocationID.x].vertIndices[2]];
@@ -39,4 +44,7 @@ void main() {
         idSSBO[gl_GlobalInvocationID.x] = int(gl_GlobalInvocationID.x); 
         atomicCounterIncrement(counter);
     }
+
+    memoryBarrierBuffer();
+    barrier();
 }

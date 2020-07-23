@@ -68,4 +68,6 @@ void main() {
 
     parentBoxSSBO.bounds[0] = vec4(min, 1.0);
     parentBoxSSBO.bounds[1] = vec4(max, 1.0);
+    memoryBarrierBuffer();
+    barrier();
 }
