@@ -3,6 +3,7 @@
 #extension GL_ARB_compute_variable_group_size : enable
 
 #define PI 3.1415926538
+#define EPSILON 0.00001
 
 struct Triangle {
     uint vertIndices[3];
@@ -95,6 +96,10 @@ bool rayIntersectsTriangle(Ray ray, Triangle triangle) {
     vec3 pVec = cross(ray.direction, b);
     float determinator = dot(a, pVec);
 
+    if (abs(determinator) < EPSILON) {
+        return false;
+    }
+
     float invDet = 1 / determinator;
 
     vec3 tVec = ray.origin - v0;
@@ -115,7 +120,7 @@ bool rayIntersectsTriangle(Ray ray, Triangle triangle) {
     
     // if t is lower than the epsilon value then the triangle is behind the ray
     // i.e. the ray should not be able to intersect with the triangle
-    if (ray.t < 0) {
+    if (ray.t < EPSILON) {
         return false;
     }
 

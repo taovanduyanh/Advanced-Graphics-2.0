@@ -2,7 +2,7 @@
 
 Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	triangle = new OBJMesh();
-	dynamic_cast<OBJMesh*>(triangle)->LoadOBJMesh(MESHDIR"sphere.obj");
+	dynamic_cast<OBJMesh*>(triangle)->LoadOBJMesh(MESHDIR"deer.obj");
 	//triangle->SetTexutre(SOIL_load_OGL_texture(TEXTUREDIR"brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
 
 	sceneQuad = Mesh::GenerateQuad();
@@ -90,11 +90,9 @@ void Renderer::ResetBuffers() {
 
 void Renderer::InitMeshReading() {
 	SetCurrentShader(meshReader);
-	modelMatrix = Matrix4::Translation(Vector3(0, 0, -7));
+	modelMatrix = Matrix4::Translation(Vector3(0, 0, -50));
 	UpdateShaderMatrices();
-	Vector3 cameraDirection = modelMatrix.GetPositionVector() - camera->GetPosition();
-	cameraDirection.Normalise();
-	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraDirection"), 1, (float*)&cameraDirection);
+	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraPosition"), 1, (float*)&camera->GetPosition());
 	glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numTriangles"), triangle->GetNumFaces());
 
 	// Dividing the work here..
