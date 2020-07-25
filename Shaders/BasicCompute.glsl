@@ -18,12 +18,9 @@ struct BBox {
 struct Ray {
     vec3 origin;
     vec3 direction;
+    vec3 barycentricCoord; // xyz == uvw..
     float t;
 } ray, shadowRay;
-
-struct BarycentricCoord {
-    float u, v, w;
-} barycentricCoord;
 
 layout(std430, binding = 0) buffer Positions {
     vec4 posSSBO[];
@@ -58,8 +55,12 @@ uniform vec3 scaleVector;
 uniform vec3 cameraPos;
 uniform float fov;
 
+// testing..
+uniform vec4 lightColour;
+uniform vec3 lightPosition;
+
 float toRadian(float angle);
-bool rayIntersectsTriangle(Ray ray, Triangle triangle);
+bool rayIntersectsTriangle(out Ray ray, Triangle triangle);   // the 'out' keyword is to "copy the values at the return time" => the ray's values will be modified..
 bool rayIntersectsBox(Ray ray, BBox box);
 vec3 pixelMiddlePoint(ivec2 pixelCoords);
 vec4 getFinalColour(ivec2 pixelCoords);
@@ -85,7 +86,7 @@ void main() {
 Moller - Trumbore algorithm
 Don't need to check for the determinatorsince the Mesh reader already handles the cases behind + parallel?
 */
-bool rayIntersectsTriangle(Ray ray, Triangle triangle) {
+bool rayIntersectsTriangle(out Ray ray, Triangle triangle) {
     // three vertices of the current triangle
     vec3 v0 = (modelMatrix * posSSBO[triangle.vertIndices[0]]).xyz;
     vec3 v1 = (modelMatrix * posSSBO[triangle.vertIndices[1]]).xyz;
@@ -103,24 +104,24 @@ bool rayIntersectsTriangle(Ray ray, Triangle triangle) {
     float invDet = 1 / determinator;
 
     vec3 tVec = ray.origin - v0;
-    barycentricCoord.u = invDet * dot(tVec, pVec);
-    if (barycentricCoord.u < 0 || barycentricCoord.u > 1) {
+    ray.barycentricCoord.x = invDet * dot(tVec, pVec);
+    if (ray.barycentricCoord.x < 0 || ray.barycentricCoord.x > 1) {
         return false;
     }
 
     vec3 qVec = cross(tVec, a);
-    barycentricCoord.v = invDet * dot(ray.direction, qVec);
-    if (barycentricCoord.v < 0 || barycentricCoord.u + barycentricCoord.v > 1) {
+    ray.barycentricCoord.y = invDet * dot(ray.direction, qVec);
+    if (ray.barycentricCoord.y < 0 || ray.barycentricCoord.x + ray.barycentricCoord.y > 1) {
         return false;
     }
     
-    barycentricCoord.w = 1 - barycentricCoord.u - barycentricCoord.v;
+    ray.barycentricCoord.z = 1 - ray.barycentricCoord.x - ray.barycentricCoord.y;
 
     ray.t = invDet * dot(b, qVec);
     
     // if t is lower than the epsilon value then the triangle is behind the ray
     // i.e. the ray should not be able to intersect with the triangle
-    if (ray.t < EPSILON) {
+    if (ray.t <= EPSILON) {
         return false;
     }
 
@@ -192,7 +193,6 @@ float toRadian(float angle) {
 
 vec4 getFinalColour(ivec2 pixelCoords) {
     vec4 finalColour = vec4(0.2, 0.2, 0.2, 1.0);
-
     // the middle point of the pixel should be in world space now by multiplying with the inverse view matrix..
     // need to find the middle point of the pixel in world space..
     mat4 inverseViewMatrix = inverse(viewMatrix);
@@ -210,11 +210,11 @@ vec4 getFinalColour(ivec2 pixelCoords) {
                     vec2 tc0 = texCoordsSSBO[facesSSBO[idSSBO[i]].texIndices[0]];
                     vec2 tc1 = texCoordsSSBO[facesSSBO[idSSBO[i]].texIndices[1]];
                     vec2 tc2 = texCoordsSSBO[facesSSBO[idSSBO[i]].texIndices[2]];
-                    vec2 texCoord = barycentricCoord.w * tc0 + barycentricCoord.u * tc1 + barycentricCoord.v * tc2;
-                    return texture(diffuse, texCoord);
+                    vec2 texCoord = ray.barycentricCoord.z * tc0 + ray.barycentricCoord.x * tc1 + ray.barycentricCoord.y * tc2;
+                    return texture(diffuse, texCoord) * lightColour;
                 }
                 else {
-                    return vec4(barycentricCoord.u, barycentricCoord.v, barycentricCoord.w, 1.0);
+                    return vec4(ray.barycentricCoord, 1.0) * lightColour;
                 }
             }
         }

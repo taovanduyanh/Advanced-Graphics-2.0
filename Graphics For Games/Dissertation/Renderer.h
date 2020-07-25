@@ -2,7 +2,7 @@
 #include "../../nclgl/OGLRenderer.h"
 #include "../../nclgl/Camera.h"
 #include "../../nclgl/OBJMesh.h"
-#include "../../nclgl/HeightMap.h"
+#include "../../nclgl/Light.h"
 #include <algorithm>
 
 class Renderer : public OGLRenderer {
@@ -35,13 +35,13 @@ protected:
 	// testing..
 	float fov;
 	Shader* meshReader;	
+	Shader* testShader;
 	Shader* rayTracerShader;
 	Shader* finalShader;
 
 	// further testing..
-	Shader* testShader;
+	Light* light;
 
-	// further testing 2..
 	GLuint rayTracerNoInvo;
 	GLuint rayTracerNoGroups[2]; // for both group x and y
 

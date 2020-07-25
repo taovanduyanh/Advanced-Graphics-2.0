@@ -2,7 +2,7 @@
 
 Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	triangle = new OBJMesh();
-	dynamic_cast<OBJMesh*>(triangle)->LoadOBJMesh(MESHDIR"centeredcube.obj");
+	dynamic_cast<OBJMesh*>(triangle)->LoadOBJMesh(MESHDIR"deer.obj");
 	//triangle->SetTexutre(SOIL_load_OGL_texture(TEXTUREDIR"brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
 
 	sceneQuad = Mesh::GenerateQuad();
@@ -60,6 +60,12 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	rayTracerNoGroups[0] = std::round(static_cast<double>(width / rayTracerNoInvo)) + 1;
 	rayTracerNoGroups[1] = std::round(static_cast<double>(height / rayTracerNoInvo)) + 1;
 
+	// further testing 2..
+	light = new Light();
+	light->SetPosition(Vector3(20, 100, 0));
+	//light->SetColour(Vector4(0.98f, 0.45f, 0.99f, 1.0f));	
+	light->SetColour(Vector4(1.0f, 1.0f, 1.0f, 1.0f));
+
 	init = true;
 }
 
@@ -73,6 +79,8 @@ Renderer::~Renderer(void) {
 	delete rayTracerShader;
 	delete finalShader;
 	currentShader = NULL;
+
+	delete light;
 
 	glDeleteTextures(1, &image);
 }
@@ -94,7 +102,7 @@ void Renderer::ResetBuffers() {
 
 void Renderer::InitMeshReading() {
 	SetCurrentShader(meshReader);
-	modelMatrix = Matrix4::Translation(Vector3(0, 0, -50));
+	modelMatrix = Matrix4::Translation(Vector3(0, 0, -10));
 	UpdateShaderMatrices();
 	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraPosition"), 1, (float*)&camera->GetPosition());
 	glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numTriangles"), triangle->GetNumFaces());
@@ -139,6 +147,7 @@ void Renderer::InitRayTracing() {
 	glUniform1f(glGetUniformLocation(currentShader->GetProgram(), "fov"), fov);
 
 	UpdateShaderMatrices();
+	SetShaderLight(*light);
 
 	glDispatchComputeGroupSizeARB(rayTracerNoGroups[0], rayTracerNoGroups[1], 1, rayTracerNoInvo, rayTracerNoInvo, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);	// makes sure the ssbo/image is written before
