@@ -32,6 +32,10 @@ public:
 	virtual void Draw();
 	static Mesh* GenerateTriangle();
 	static Mesh* GenerateQuad();
+#ifdef USE_RAY_TRACING
+	static Mesh* GenerateTriangleRayTracing();
+	static Mesh* GenerateQuadRayTracing();
+#endif
 
 	void SetTexutre(GLuint tex) { texture = tex; }
 	GLuint GetTexture() { return texture; }

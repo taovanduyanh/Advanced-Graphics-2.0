@@ -1,1 +1,22 @@
-﻿  Dissertation.vcxproj -> E:\Misc\Diss 2020\Graphics For Games\Debug\Dissertation.exe
+﻿  Main.cpp
+  Renderer.cpp
+E:\Misc\Diss 2020\Graphics For Games\Dissertation\Renderer.cpp(59,30): warning C4244: '=': conversion from 'double' to 'GLuint', possible loss of data
+E:\Misc\Diss 2020\Graphics For Games\Dissertation\Renderer.cpp(60,82): warning C4244: '=': conversion from 'double' to 'GLuint', possible loss of data
+E:\Misc\Diss 2020\Graphics For Games\Dissertation\Renderer.cpp(61,83): warning C4244: '=': conversion from 'double' to 'GLuint', possible loss of data
+E:\Misc\Diss 2020\Graphics For Games\Dissertation\Renderer.cpp(106,21): warning C4018: '>': signed/unsigned mismatch
+E:\Misc\Diss 2020\Graphics For Games\Dissertation\Renderer.cpp(107,90): warning C4244: '=': conversion from 'double' to 'GLuint', possible loss of data
+  Generating Code...
+LINK : warning LNK4286: symbol '___glewActiveTexture' defined in 'glew32.lib(glew.obj)' is imported by 'Renderer.obj'
+LINK : warning LNK4286: symbol '___glewGetUniformLocation' defined in 'glew32.lib(glew.obj)' is imported by 'Renderer.obj'
+LINK : warning LNK4286: symbol '___glewUniform1f' defined in 'glew32.lib(glew.obj)' is imported by 'Renderer.obj'
+LINK : warning LNK4286: symbol '___glewUniform1i' defined in 'glew32.lib(glew.obj)' is imported by 'Renderer.obj'
+LINK : warning LNK4286: symbol '___glewUniform2f' defined in 'glew32.lib(glew.obj)' is imported by 'Renderer.obj'
+LINK : warning LNK4286: symbol '___glewUniform3fv' defined in 'glew32.lib(glew.obj)' is imported by 'Renderer.obj'
+LINK : warning LNK4286: symbol '___glewUseProgram' defined in 'glew32.lib(glew.obj)' is imported by 'Renderer.obj'
+LINK : warning LNK4286: symbol '___glewUniform1ui' defined in 'glew32.lib(glew.obj)' is imported by 'Renderer.obj'
+LINK : warning LNK4286: symbol '___glewDispatchComputeGroupSizeARB' defined in 'glew32.lib(glew.obj)' is imported by 'Renderer.obj'
+LINK : warning LNK4286: symbol '___glewBindImageTexture' defined in 'glew32.lib(glew.obj)' is imported by 'Renderer.obj'
+LINK : warning LNK4286: symbol '___glewMemoryBarrier' defined in 'glew32.lib(glew.obj)' is imported by 'Renderer.obj'
+LINK : warning LNK4286: symbol '___glewGetIntegeri_v' defined in 'glew32.lib(glew.obj)' is imported by 'Renderer.obj'
+glew32.lib(glew.obj) : warning LNK4099: PDB 'vc120.pdb' was not found with 'glew32.lib(glew.obj)' or at 'E:\Misc\Diss 2020\Graphics For Games\Debug\vc120.pdb'; linking object as if no debug info
+  Dissertation.vcxproj -> E:\Misc\Diss 2020\Graphics For Games\Debug\Dissertation.exe
