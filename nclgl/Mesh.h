@@ -101,7 +101,9 @@ protected:
 
 	// further testing..
 	GLuint idAtomicCounter;
-	GLuint parentBoxSSBO;
+
+	// further testing 2..
+	GLuint testSSBO;
 
 	// A triangle/face always has three vertices.. 
 	// Note that some OBJ meshes only have positions 

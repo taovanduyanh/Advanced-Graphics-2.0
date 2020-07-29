@@ -121,11 +121,13 @@ void Renderer::InitMeshReading() {
 	triangle->UpdateCollectedID();
 }
 
-void Renderer::InitBoundingBox() {
+void Renderer::InitBoundingVolume() {
 	// further testing..
 	SetCurrentShader(testShader);
+	int test = 3;
+	glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "num"), test);
 	UpdateShaderMatrices();
-	glDispatchComputeGroupSizeARB(1, 1, 1, 1, 1, 1);
+	glDispatchComputeGroupSizeARB(1, 1, 1, 39, 1, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
@@ -172,7 +174,7 @@ void Renderer::InitFinalScene() {
 void Renderer::RenderScene() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	InitMeshReading();
-	InitBoundingBox();
+	InitBoundingVolume();
 	InitRayTracing();
 	InitFinalScene();
 	SwapBuffers();

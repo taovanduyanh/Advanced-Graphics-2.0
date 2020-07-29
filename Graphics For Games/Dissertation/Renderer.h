@@ -17,7 +17,7 @@ public:
 
 protected:
 	void InitMeshReading();
-	void InitBoundingBox();
+	void InitBoundingVolume();
 	void InitRayTracing();
 	void InitFinalScene();
 

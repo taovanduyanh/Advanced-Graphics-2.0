@@ -41,9 +41,8 @@ void main() {
     vec4 a = v1 - v0;
     vec4 b = v2 - v0;
     vec3 normal = normalize(cross(a.xyz, b.xyz));
-
-    // minusing the first vertex here instead of the camera's position due to the negative z thingy..
-    if (dot(normalize(cameraPosition - v0.xyz), normal) >= EPSILON) {
+    
+    if (dot(normalize(v0.xyz - cameraPosition), normal) < EPSILON) {
         idSSBO[gl_GlobalInvocationID.x] = int(gl_GlobalInvocationID.x); 
         atomicCounterIncrement(counter);
     }

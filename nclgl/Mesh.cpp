@@ -50,7 +50,9 @@ Mesh::~Mesh(void) {
 	glDeleteBuffers(1, &facesInfoSSBO);
 	glDeleteBuffers(1, &selectedFacesIDSSBO);
 	glDeleteBuffers(1, &idAtomicCounter);
-	glDeleteBuffers(1, &parentBoxSSBO);
+
+	// further testing..
+	glDeleteBuffers(1, &testSSBO);
 #endif
 }
 
@@ -265,7 +267,7 @@ void Mesh::GenerateVerticesSSBOs() {
 	}
 	glGenBuffers(1, &verticesInfoSSBO[POSITION]);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[POSITION]);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(Vector4), temp.data(), GL_DYNAMIC_DRAW);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(Vector4), temp.data(), GL_STATIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, POSITION, verticesInfoSSBO[POSITION]);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	temp.clear();
@@ -274,7 +276,7 @@ void Mesh::GenerateVerticesSSBOs() {
 	if (colours) {
 		glGenBuffers(1, &verticesInfoSSBO[COLOUR]);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[COLOUR]);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(Vector4), colours->data(), GL_DYNAMIC_DRAW);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(Vector4), colours->data(), GL_STATIC_DRAW);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, COLOUR, verticesInfoSSBO[COLOUR]);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	}
@@ -283,7 +285,7 @@ void Mesh::GenerateVerticesSSBOs() {
 	if (textureCoords) {
 		glGenBuffers(1, &verticesInfoSSBO[TEX_COORD]);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[TEX_COORD]);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, numTexCoords * sizeof(Vector2), textureCoords->data(), GL_DYNAMIC_DRAW);	// change this later..
+		glBufferData(GL_SHADER_STORAGE_BUFFER, numTexCoords * sizeof(Vector2), textureCoords->data(), GL_STATIC_DRAW);	// change this later..
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, TEX_COORD, verticesInfoSSBO[TEX_COORD]);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	}
@@ -294,7 +296,7 @@ void Mesh::GenerateVerticesSSBOs() {
 	}
 	glGenBuffers(1, &verticesInfoSSBO[NORMAL]);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[NORMAL]);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, numNormals * sizeof(Vector4), temp.data(), GL_DYNAMIC_DRAW);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, numNormals * sizeof(Vector4), temp.data(), GL_STATIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NORMAL, verticesInfoSSBO[NORMAL]);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	temp.clear();
@@ -304,7 +306,7 @@ void Mesh::GenerateFacesSSBOs() {
 	// Faces
 	glGenBuffers(1, &facesInfoSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, facesInfoSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, numFaces * sizeof(Triangle), facesList->data(), GL_DYNAMIC_DRAW);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, numFaces * sizeof(Triangle), facesList->data(), GL_STATIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX + 1, facesInfoSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
@@ -312,7 +314,7 @@ void Mesh::GenerateFacesSSBOs() {
 	std::vector<GLint> collectedID(numFaces, -1);
 	glGenBuffers(1, &selectedFacesIDSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, selectedFacesIDSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, numFaces * sizeof(GLint), collectedID.data(), GL_DYNAMIC_DRAW);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, numFaces * sizeof(GLint), collectedID.data(), GL_STATIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX, selectedFacesIDSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	collectedID.clear();
@@ -324,12 +326,16 @@ void Mesh::GenerateFacesSSBOs() {
 	glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, idAtomicCounter);
 	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
 
-	// Parent Bounding Box
-	BoundingBox box = BoundingBox();
-	glGenBuffers(1, &parentBoxSSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, parentBoxSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(BoundingBox), &box, GL_STATIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 12, parentBoxSSBO);
+	// further testing..
+	float planeDs[39][2];
+	for (int i = 0; i < 39; ++i) {
+		planeDs[i][0] = numeric_limits<float>::infinity();
+		planeDs[i][1] = -numeric_limits<float>::infinity();
+	}
+	glGenBuffers(1, &testSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, testSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(planeDs), &planeDs[0], GL_STATIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 15, testSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
@@ -350,7 +356,6 @@ void Mesh::UpdateCollectedID() {
 	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, collectedID.size() * sizeof(GLint), collectedID.data());
 	collectedID.clear();
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
 void Mesh::ResetSSBOs() {
@@ -363,10 +368,16 @@ void Mesh::ResetSSBOs() {
 	glClearBufferData(GL_ATOMIC_COUNTER_BUFFER, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, 0);
 	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
 
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, parentBoxSSBO);
-	BoundingBox* parentBox = (BoundingBox*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
-	BoundingBox box = BoundingBox();
-	memcpy(parentBox, &box, sizeof(BoundingBox));
+	// further testing..
+	float planeDs[39][2];
+	for (int i = 0; i < 39; ++i) {
+		planeDs[i][0] = numeric_limits<float>::infinity();
+		planeDs[i][1] = -numeric_limits<float>::infinity();
+	}
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, testSSBO);
+	float* d = (float*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
+	memcpy(d, &planeDs[0], sizeof(planeDs));
 	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
