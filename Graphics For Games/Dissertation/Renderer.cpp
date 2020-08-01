@@ -12,12 +12,26 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	// shaders..
 	meshReader = new Shader(SHADERDIR"AnotherCompute.glsl");
 	testShader = new Shader(SHADERDIR"Testing.glsl");
+	testShader2 = new Shader(SHADERDIR"Testing2.glsl");
+	testShader3 = new Shader(SHADERDIR"Testing3.glsl");
+	testShader4 = new Shader(SHADERDIR"Testing4.glsl");
 	rayTracerShader = new Shader(SHADERDIR"BasicCompute.glsl");
 	finalShader = new Shader(SHADERDIR"TexturedVertex.glsl", SHADERDIR"TexturedFragment.glsl");
 
-	if (!meshReader->LinkProgram() || !testShader->LinkProgram() || !rayTracerShader->LinkProgram() || !finalShader->LinkProgram()) {
+	if (!meshReader->LinkProgram() || !testShader->LinkProgram() || !testShader2->LinkProgram() || !testShader3->LinkProgram() || !testShader4->LinkProgram() || !rayTracerShader->LinkProgram() || !finalShader->LinkProgram()) {
 		return;
 	}
+
+	// further testing 3..
+	glGenBuffers(2, tempSSBO);
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, tempSSBO[0]);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, tempSSBO[0]);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, tempSSBO[1]);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 20, tempSSBO[1]);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	// Stuffs related to compute shader..
 	// No. of work groups you can create in each dimension
@@ -56,9 +70,9 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	fov = 45.0f;
 
 	// further testing..
-	rayTracerNoInvo = std::round(std::sqrt(static_cast<double>(maxWorkItemsPerGroup)));
-	rayTracerNoGroups[0] = std::round(static_cast<double>(width / rayTracerNoInvo)) + 1;
-	rayTracerNoGroups[1] = std::round(static_cast<double>(height / rayTracerNoInvo)) + 1;
+	rayTracerNumInvo = std::round(std::sqrt(static_cast<double>(maxWorkItemsPerGroup)));
+	rayTracerNumGroups[0] = std::round(static_cast<double>(width / rayTracerNumInvo)) + 1;
+	rayTracerNumGroups[1] = std::round(static_cast<double>(height / rayTracerNumInvo)) + 1;
 
 	// further testing 2..
 	light = new Light();
@@ -76,6 +90,9 @@ Renderer::~Renderer(void) {
 
 	delete meshReader;
 	delete testShader;
+	delete testShader2;
+	delete testShader3;
+	delete testShader4;
 	delete rayTracerShader;
 	delete finalShader;
 	currentShader = NULL;
@@ -83,6 +100,9 @@ Renderer::~Renderer(void) {
 	delete light;
 
 	glDeleteTextures(1, &image);
+
+	// further testing..
+	glDeleteBuffers(2, tempSSBO);
 }
 
 void Renderer::UpdateScene(float msec) {
@@ -108,27 +128,72 @@ void Renderer::InitMeshReading() {
 	glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numTriangles"), triangle->GetNumFaces());
 
 	// Dividing the work here..
-	GLuint numWorkGroups = 1;
+	GLuint numWorkGroupsX = 1;
 	GLuint numInvocations = triangle->GetNumFaces();
 
 	if (numInvocations > maxWorkItemsPerGroup) {
-		numWorkGroups = std::round(static_cast<double>(numInvocations / maxWorkItemsPerGroup)) + 1;
+		numWorkGroupsX = std::round(static_cast<double>(numInvocations / maxWorkItemsPerGroup)) + 1;
 		numInvocations = maxWorkItemsPerGroup;
 	}
 
-	glDispatchComputeGroupSizeARB(numWorkGroups, 1, 1, numInvocations, 1, 1);
+	glDispatchComputeGroupSizeARB(numWorkGroupsX, 1, 1, numInvocations, 1, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 	triangle->UpdateCollectedID();
 }
 
 void Renderer::InitBoundingVolume() {
-	// further testing..
-	SetCurrentShader(testShader);
-	int test = 3;
-	glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "num"), test);
-	UpdateShaderMatrices();
-	glDispatchComputeGroupSizeARB(1, 1, 1, 39, 1, 1);
-	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	GLuint numWorkGroupsX = 1;
+	GLuint numInvocationsX = 1;
+	GLuint numVisibleFaces = triangle->GetNumVisibleFaces();
+
+	if (numVisibleFaces <= NUM_PLANE_NORMALS) {
+		SetCurrentShader(testShader4);
+
+		UpdateShaderMatrices();
+		glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numVisibleFaces"), numVisibleFaces);
+
+		glDispatchComputeGroupSizeARB(numWorkGroupsX, 1, 1, numInvocationsX, NUM_PLANE_NORMALS, 1);
+		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	}
+	else {
+		numInvocationsX = std::round(maxWorkItemsPerGroup / NUM_PLANE_NORMALS);
+		double invNumInvoX = 1.0 / numInvocationsX;
+		numWorkGroupsX = std::round(static_cast<double>(numVisibleFaces * invNumInvoX)) + 1;
+
+		// further testing 4..
+		// first stage..
+		SetCurrentShader(testShader);
+		UpdateShaderMatrices();
+
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, tempSSBO[0]);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, numVisibleFaces * NUM_PLANE_NORMALS * 2 * sizeof(float), NULL, GL_STATIC_DRAW);
+		glBindBuffer(GL_SHADER_STORAGE_BARRIER_BIT, 0);
+
+		glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numVisibleFaces"), numVisibleFaces);
+
+		glDispatchComputeGroupSizeARB(numWorkGroupsX, 1, 1, numInvocationsX, NUM_PLANE_NORMALS, 1);
+		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+		// second stage..
+		SetCurrentShader(testShader2);
+
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, tempSSBO[1]);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, numWorkGroupsX * NUM_PLANE_NORMALS * 2 * sizeof(float), NULL, GL_STATIC_DRAW);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+		glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numFacesPerGroup"), numInvocationsX);
+
+		glDispatchComputeGroupSizeARB(1, 1, 1, numWorkGroupsX, NUM_PLANE_NORMALS, 1);
+		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+		// third stage..
+		SetCurrentShader(testShader3);
+
+		glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numGroups"), numWorkGroupsX);
+
+		glDispatchComputeGroupSizeARB(1, 1, 1, 1, NUM_PLANE_NORMALS, 1);
+		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	}
 }
 
 void Renderer::InitRayTracing() {
@@ -148,10 +213,12 @@ void Renderer::InitRayTracing() {
 	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraPos"), 1, (float*)&camera->GetPosition());
 	glUniform1f(glGetUniformLocation(currentShader->GetProgram(), "fov"), fov);
 
+	glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numVisibleFaces"), triangle->GetNumVisibleFaces());
+
 	UpdateShaderMatrices();
 	SetShaderLight(*light);
 
-	glDispatchComputeGroupSizeARB(rayTracerNoGroups[0], rayTracerNoGroups[1], 1, rayTracerNoInvo, rayTracerNoInvo, 1);
+	glDispatchComputeGroupSizeARB(rayTracerNumGroups[0], rayTracerNumGroups[1], 1, rayTracerNumInvo, rayTracerNumInvo, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);	// makes sure the ssbo/image is written before
 
 	glBindTexture(GL_TEXTURE_2D, 0);

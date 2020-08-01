@@ -24,6 +24,9 @@ Mesh::Mesh(void) {
 	texture = 0;
 	bumpTexture = 0;
 
+	// further testing 3..
+	numVisibleFaces = 0;
+
 	type = GL_TRIANGLES;
 }
 
@@ -48,8 +51,7 @@ Mesh::~Mesh(void) {
 #ifdef USE_RAY_TRACING
 	glDeleteBuffers(MAX, verticesInfoSSBO);
 	glDeleteBuffers(1, &facesInfoSSBO);
-	glDeleteBuffers(1, &selectedFacesIDSSBO);
-	glDeleteBuffers(1, &idAtomicCounter);
+	glDeleteBuffers(1, &visibleFacesIDSSBO);
 
 	// further testing..
 	glDeleteBuffers(1, &testSSBO);
@@ -312,19 +314,12 @@ void Mesh::GenerateFacesSSBOs() {
 
 	// Face ID 
 	std::vector<GLint> collectedID(numFaces, -1);
-	glGenBuffers(1, &selectedFacesIDSSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, selectedFacesIDSSBO);
+	glGenBuffers(1, &visibleFacesIDSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, visibleFacesIDSSBO);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, numFaces * sizeof(GLint), collectedID.data(), GL_STATIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX, selectedFacesIDSSBO);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX, visibleFacesIDSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	collectedID.clear();
-
-	// Atomic counter
-	glGenBuffers(1, &idAtomicCounter);
-	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, idAtomicCounter);
-	glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), 0, GL_STATIC_DRAW);
-	glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, idAtomicCounter);
-	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
 
 	// further testing..
 	float planeDs[39][2];
@@ -346,13 +341,17 @@ void Mesh::GenerateSSBOs() {
 
 void Mesh::UpdateCollectedID() {
 	std::vector<GLint> collectedID;
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, selectedFacesIDSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, visibleFacesIDSSBO);
 	GLint* ptr = (GLint*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
 	for (int i = 0; i < numFaces; ++i) {
 		if (ptr[i] != -1) {
 			collectedID.push_back(ptr[i]);
 		}
 	}
+
+	// further testing 3..
+	numVisibleFaces = static_cast<GLuint>(collectedID.size());
+
 	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, collectedID.size() * sizeof(GLint), collectedID.data());
 	collectedID.clear();
@@ -360,13 +359,9 @@ void Mesh::UpdateCollectedID() {
 
 void Mesh::ResetSSBOs() {
 	std::vector<GLint> collectedID(numFaces, -1);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, selectedFacesIDSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, visibleFacesIDSSBO);
 	glClearBufferData(GL_SHADER_STORAGE_BUFFER, GL_R32I, GL_RED_INTEGER, GL_INT, collectedID.data());
 	collectedID.clear();
-
-	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, idAtomicCounter);
-	glClearBufferData(GL_ATOMIC_COUNTER_BUFFER, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, 0);
-	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
 
 	// further testing..
 	float planeDs[39][2];

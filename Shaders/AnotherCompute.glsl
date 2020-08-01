@@ -27,7 +27,6 @@ uniform vec3 cameraPosition;
 uniform uint numTriangles;
 
 layout(local_size_variable) in;
-layout(binding = 0, offset = 0) uniform atomic_uint counter;
 
 void main() {
     if (gl_GlobalInvocationID.x >= numTriangles) {
@@ -44,7 +43,6 @@ void main() {
     
     if (dot(normalize(v0.xyz - cameraPosition), normal) < EPSILON) {
         idSSBO[gl_GlobalInvocationID.x] = int(gl_GlobalInvocationID.x); 
-        atomicCounterIncrement(counter);
     }
 
     memoryBarrierBuffer();

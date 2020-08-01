@@ -43,7 +43,6 @@ layout(std430, binding = 15) buffer PlaneDs {
 };
 
 layout(local_size_variable) in;
-layout(binding = 0, offset = 0) uniform atomic_uint counter;
 
 /*
 const vec3 kSNormals[7] = vec3[7](vec3(1, 0, 0),
@@ -113,6 +112,7 @@ uniform vec2 pixelSize;
 uniform vec3 scaleVector;
 uniform vec3 cameraPos;
 uniform float fov;
+uniform uint numVisibleFaces;
 
 // testing..
 uniform vec4 lightColour;
@@ -301,7 +301,7 @@ vec4 getFinalColour(ivec2 pixelCoords) {
     // further testing..
     if (rayIntersectsVolume(ray)) {
         finalColour += vec4(0.0, 0.05, 0.0, 1.0);
-        for (int i = 0; i < atomicCounter(counter); ++i) {
+        for (int i = 0; i < numVisibleFaces; ++i) {
             if (rayIntersectsTriangle(ray, facesSSBO[idSSBO[i]])) {
                 if (useTexture > 0) {
                     vec2 tc0 = texCoordsSSBO[facesSSBO[idSSBO[i]].texIndices[0]];

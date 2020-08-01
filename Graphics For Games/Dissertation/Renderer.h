@@ -5,6 +5,8 @@
 #include "../../nclgl/Light.h"
 #include <algorithm>
 
+constexpr auto NUM_PLANE_NORMALS = 39;
+
 class Renderer : public OGLRenderer {
 public:
 	Renderer(Window& parent);
@@ -36,14 +38,20 @@ protected:
 	float fov;
 	Shader* meshReader;	
 	Shader* testShader;
+	Shader* testShader2;
+	Shader* testShader3;
+	Shader* testShader4;
 	Shader* rayTracerShader;
 	Shader* finalShader;
 
 	// further testing..
 	Light* light;
 
-	GLuint rayTracerNoInvo;
-	GLuint rayTracerNoGroups[2]; // for both group x and y
+	// further testing 3..
+	GLuint tempSSBO[2];
+
+	GLuint rayTracerNumInvo;
+	GLuint rayTracerNumGroups[2]; // for both group x and y
 
 	GLuint image;
 };

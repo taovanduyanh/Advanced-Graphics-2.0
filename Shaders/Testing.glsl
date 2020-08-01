@@ -8,10 +8,6 @@ struct Triangle {
     uint normalsIndices[3];
 };
 
-struct BBox {
-    vec4 bounds[2];
-};
-
 layout(std430, binding = 0) buffer Positions {
     vec4 posSSBO[];
 };
@@ -24,18 +20,11 @@ layout(std430, binding = 6) buffer Faces {
     Triangle facesSSBO[];
 };
 
-layout(std430, binding = 15) buffer PlaneDs {
-    float dSSBO[36][2];
+layout(std430, binding = 10) buffer Temp1 {
+    float temp1[][2];
 };
 
 layout(local_size_variable) in;
-layout(binding = 0, offset = 0) uniform atomic_uint counter;
-
-uniform uint num;
-
-const uint size = num;
-
-shared float test[size];
 
 const vec3 kSNormals[7] = vec3[7](vec3(1, 0, 0),
                                   vec3(0, 1, 0),
@@ -95,21 +84,31 @@ const vec3 nearHalfIcoNormals[39] = vec3[39](
                                          vec3(0.0385468, 0.661687, 0.748788),
                                          vec3(-0.700228, 0.661688, 0.26805));
 
+uniform uint numVisibleFaces;
 uniform mat4 modelMatrix;
 
 void main() {
-    for (int i = 0; i < atomicCounter(counter); ++i) {
-        int id = idSSBO[i];
-        for (int j = 0; j < 3; ++j) {
-            vec3 currPos = (modelMatrix * posSSBO[facesSSBO[id].vertIndices[j]]).xyz;
+    // further testing 4..
+    if (gl_GlobalInvocationID.x >= numVisibleFaces) {
+        return;
+    }
 
-            //for (int k = 0; k < nearHalfIcoNormals.length(); ++k) {
-            float d = dot(nearHalfIcoNormals[gl_GlobalInvocationID.x], currPos);
+    temp1[gl_GlobalInvocationID.x * nearHalfIcoNormals.length() + gl_GlobalInvocationID.y][0] = 1.0 / 0.0;
+    temp1[gl_GlobalInvocationID.x * nearHalfIcoNormals.length() + gl_GlobalInvocationID.y][1] = -1.0 / 0.0;
 
-            dSSBO[gl_GlobalInvocationID.x][0] = min(d, dSSBO[gl_GlobalInvocationID.x][0]);
-            dSSBO[gl_GlobalInvocationID.x][1] = max(d, dSSBO[gl_GlobalInvocationID.x][1]);
-            //}
-        }
+    memoryBarrierBuffer();
+    barrier();
+    
+    int id = idSSBO[gl_GlobalInvocationID.x];
+    for (int i = 0; i < 3; ++i) {
+        vec3 currVertex = (modelMatrix * posSSBO[facesSSBO[id].vertIndices[i]]).xyz;
+        float d = dot(currVertex, nearHalfIcoNormals[gl_GlobalInvocationID.y]);
+
+        temp1[gl_GlobalInvocationID.x * nearHalfIcoNormals.length() + gl_GlobalInvocationID.y][0] 
+        = min(d, temp1[gl_GlobalInvocationID.x * nearHalfIcoNormals.length() + gl_GlobalInvocationID.y][0]);
+
+        temp1[gl_GlobalInvocationID.x * nearHalfIcoNormals.length() + gl_GlobalInvocationID.y][1] 
+        = max(d, temp1[gl_GlobalInvocationID.x * nearHalfIcoNormals.length() + gl_GlobalInvocationID.y][1]);
     }
 
     memoryBarrierBuffer();

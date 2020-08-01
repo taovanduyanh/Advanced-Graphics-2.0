@@ -32,10 +32,6 @@ public:
 	virtual void Draw();
 	static Mesh* GenerateTriangle();
 	static Mesh* GenerateQuad();
-#ifdef USE_RAY_TRACING
-	static Mesh* GenerateTriangleRayTracing();
-	static Mesh* GenerateQuadRayTracing();
-#endif
 
 	void SetTexutre(GLuint tex) { texture = tex; }
 	GLuint GetTexture() { return texture; }
@@ -44,6 +40,8 @@ public:
 	GLuint GetBumpMap() { return bumpTexture; }
 
 #ifdef USE_RAY_TRACING
+	static Mesh* GenerateTriangleRayTracing();
+	static Mesh* GenerateQuadRayTracing();
 
 	// Clear the main SSBOs..
 	void ResetSSBOs();
@@ -52,6 +50,8 @@ public:
 	GLuint GetNumFaces() const { return numFaces; }
 
 	void UpdateCollectedID();
+
+	GLuint GetNumVisibleFaces() const { return numVisibleFaces; }
 
 #endif // USE_RAY_TRACING
 
@@ -97,13 +97,13 @@ protected:
 
 	GLuint verticesInfoSSBO[MAX];
 	GLuint facesInfoSSBO;
-	GLuint selectedFacesIDSSBO;
-
-	// further testing..
-	GLuint idAtomicCounter;
+	GLuint visibleFacesIDSSBO;
 
 	// further testing 2..
 	GLuint testSSBO;
+
+	// further testing 3..
+	GLuint numVisibleFaces;
 
 	// A triangle/face always has three vertices.. 
 	// Note that some OBJ meshes only have positions 
