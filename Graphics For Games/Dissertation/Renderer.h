@@ -19,7 +19,11 @@ public:
 
 protected:
 	void InitMeshReading();
+
 	void InitBoundingVolume();
+	void InitBoundingVolumeDefault(GLuint numVisibleFaces);
+	void InitBoundingVolumeMulti(GLuint numWorkGroups, GLuint numFacesPerGroup, GLuint numVisibleFaces);
+
 	void InitRayTracing();
 	void InitFinalScene();
 

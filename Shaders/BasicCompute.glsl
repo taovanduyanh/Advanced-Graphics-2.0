@@ -300,7 +300,7 @@ vec4 getFinalColour(ivec2 pixelCoords) {
 
     // further testing..
     if (rayIntersectsVolume(ray)) {
-        finalColour += vec4(0.0, 0.05, 0.0, 1.0);
+        //finalColour += vec4(0.0, 0.05, 0.0, 1.0);
         for (int i = 0; i < numVisibleFaces; ++i) {
             if (rayIntersectsTriangle(ray, facesSSBO[idSSBO[i]])) {
                 if (useTexture > 0) {

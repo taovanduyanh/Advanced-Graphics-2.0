@@ -15,6 +15,7 @@ layout(local_size_variable) in;
 
 const uint numPlaneNormals = 39;
 uniform uint numFacesPerGroup;
+uniform uint maxIndex;
 
 void main() {
     // further testing 4..
@@ -26,6 +27,9 @@ void main() {
 
     for (int i = 0; i < numFacesPerGroup; ++i) {
         uint id = (gl_GlobalInvocationID.x * numFacesPerGroup + i) * numPlaneNormals + gl_GlobalInvocationID.y;
+        if (id >= maxIndex) {
+            break;
+        }
         float dMin = temp1[id][0];
         float dMax = temp1[id][1];
 

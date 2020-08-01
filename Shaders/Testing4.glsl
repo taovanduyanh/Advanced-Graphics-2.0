@@ -88,6 +88,12 @@ uniform uint numVisibleFaces;
 uniform mat4 modelMatrix;
 
 void main() {
+    dSSBO[gl_GlobalInvocationID.y][0] = 1.0 / 0.0;
+    dSSBO[gl_GlobalInvocationID.y][1] = -1.0 / 0.0;
+
+    memoryBarrierBuffer();
+    barrier();
+
     for (int i = 0; i < numVisibleFaces; ++i) {
         int id = idSSBO[i];
         for (int j = 0; j < 3; ++j) {

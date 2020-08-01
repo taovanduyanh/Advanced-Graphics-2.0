@@ -142,58 +142,67 @@ void Renderer::InitMeshReading() {
 }
 
 void Renderer::InitBoundingVolume() {
-	GLuint numWorkGroupsX = 1;
-	GLuint numInvocationsX = 1;
+	GLuint numWorkGroups = 1;
+	GLuint numFacesPerGroup = 1;
 	GLuint numVisibleFaces = triangle->GetNumVisibleFaces();
 
 	if (numVisibleFaces <= NUM_PLANE_NORMALS) {
-		SetCurrentShader(testShader4);
-
-		UpdateShaderMatrices();
-		glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numVisibleFaces"), numVisibleFaces);
-
-		glDispatchComputeGroupSizeARB(numWorkGroupsX, 1, 1, numInvocationsX, NUM_PLANE_NORMALS, 1);
-		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+		InitBoundingVolumeDefault(numVisibleFaces);
+		//InitBoundingVolumeMulti(numWorkGroups, numVisibleFaces, numVisibleFaces);
 	}
 	else {
-		numInvocationsX = std::round(maxWorkItemsPerGroup / NUM_PLANE_NORMALS);
-		double invNumInvoX = 1.0 / numInvocationsX;
-		numWorkGroupsX = std::round(static_cast<double>(numVisibleFaces * invNumInvoX)) + 1;
+		numFacesPerGroup = std::round(maxWorkItemsPerGroup / NUM_PLANE_NORMALS);
+		double invNumInvoX = 1.0 / numFacesPerGroup;
+		numWorkGroups = std::round(static_cast<double>(numVisibleFaces * invNumInvoX)) + 1;
 
-		// further testing 4..
-		// first stage..
-		SetCurrentShader(testShader);
-		UpdateShaderMatrices();
-
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, tempSSBO[0]);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, numVisibleFaces * NUM_PLANE_NORMALS * 2 * sizeof(float), NULL, GL_STATIC_DRAW);
-		glBindBuffer(GL_SHADER_STORAGE_BARRIER_BIT, 0);
-
-		glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numVisibleFaces"), numVisibleFaces);
-
-		glDispatchComputeGroupSizeARB(numWorkGroupsX, 1, 1, numInvocationsX, NUM_PLANE_NORMALS, 1);
-		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
-		// second stage..
-		SetCurrentShader(testShader2);
-
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, tempSSBO[1]);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, numWorkGroupsX * NUM_PLANE_NORMALS * 2 * sizeof(float), NULL, GL_STATIC_DRAW);
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-		glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numFacesPerGroup"), numInvocationsX);
-
-		glDispatchComputeGroupSizeARB(1, 1, 1, numWorkGroupsX, NUM_PLANE_NORMALS, 1);
-		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
-		// third stage..
-		SetCurrentShader(testShader3);
-
-		glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numGroups"), numWorkGroupsX);
-
-		glDispatchComputeGroupSizeARB(1, 1, 1, 1, NUM_PLANE_NORMALS, 1);
-		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+		InitBoundingVolumeMulti(numWorkGroups, numFacesPerGroup, numVisibleFaces);
 	}
+}
+
+void Renderer::InitBoundingVolumeDefault(GLuint numVisibleFaces) {
+	SetCurrentShader(testShader4);
+
+	UpdateShaderMatrices();
+	glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numVisibleFaces"), numVisibleFaces);
+
+	glDispatchComputeGroupSizeARB(1, 1, 1, 1, NUM_PLANE_NORMALS, 1);
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+}
+
+void Renderer::InitBoundingVolumeMulti(GLuint numWorkGroups, GLuint numFacesPerGroup, GLuint numVisibleFaces) {
+	// first stage..
+	SetCurrentShader(testShader);
+	UpdateShaderMatrices();
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, tempSSBO[0]);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, numVisibleFaces * NUM_PLANE_NORMALS * 2 * sizeof(float), NULL, GL_STATIC_DRAW);
+	glBindBuffer(GL_SHADER_STORAGE_BARRIER_BIT, 0);
+
+	glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numVisibleFaces"), numVisibleFaces);
+
+	glDispatchComputeGroupSizeARB(numWorkGroups, 1, 1, numFacesPerGroup, NUM_PLANE_NORMALS, 1);
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+	// second stage..
+	SetCurrentShader(testShader2);
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, tempSSBO[1]);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, numWorkGroups * NUM_PLANE_NORMALS * 2 * sizeof(float), NULL, GL_STATIC_DRAW);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numFacesPerGroup"), numFacesPerGroup);
+	glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "maxIndex"), numVisibleFaces * NUM_PLANE_NORMALS);
+
+	glDispatchComputeGroupSizeARB(1, 1, 1, numWorkGroups, NUM_PLANE_NORMALS, 1);
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+	// third stage..
+	SetCurrentShader(testShader3);
+
+	glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numGroups"), numWorkGroups);
+
+	glDispatchComputeGroupSizeARB(1, 1, 1, 1, NUM_PLANE_NORMALS, 1);
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
 void Renderer::InitRayTracing() {

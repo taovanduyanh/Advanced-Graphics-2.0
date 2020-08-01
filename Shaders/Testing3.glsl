@@ -17,6 +17,9 @@ const uint numPlaneNormals = 39;
 uniform uint numGroups;
 
 void main() {
+    dSSBO[gl_GlobalInvocationID.y][0] = 1.0 / 0.0;
+    dSSBO[gl_GlobalInvocationID.y][1] = -1.0 / 0.0;
+    
     for (int i = 0; i < numGroups; ++i) {
         uint id = numPlaneNormals * i + gl_GlobalInvocationID.y;
         dSSBO[gl_GlobalInvocationID.y][0] = min(temp2[id][0], dSSBO[gl_GlobalInvocationID.y][0]);

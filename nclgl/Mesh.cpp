@@ -321,15 +321,10 @@ void Mesh::GenerateFacesSSBOs() {
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	collectedID.clear();
 
-	// further testing..
-	float planeDs[39][2];
-	for (int i = 0; i < 39; ++i) {
-		planeDs[i][0] = numeric_limits<float>::infinity();
-		planeDs[i][1] = -numeric_limits<float>::infinity();
-	}
+	// Planes 
 	glGenBuffers(1, &testSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, testSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(planeDs), &planeDs[0], GL_STATIC_DRAW);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, 78 * sizeof(float), NULL, GL_STATIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 15, testSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
@@ -364,17 +359,15 @@ void Mesh::ResetSSBOs() {
 	collectedID.clear();
 
 	// further testing..
-	float planeDs[39][2];
-	for (int i = 0; i < 39; ++i) {
-		planeDs[i][0] = numeric_limits<float>::infinity();
-		planeDs[i][1] = -numeric_limits<float>::infinity();
-	}
 
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, testSSBO);
-	float* d = (float*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
-	memcpy(d, &planeDs[0], sizeof(planeDs));
-	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	//glBindBuffer(GL_SHADER_STORAGE_BUFFER, testSSBO);
+	//float* d = (float*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
+	//for (int i = 0; i < 78; i += 2) {
+	//	cout << d[i] << " " << d[i + 1] << endl;
+	//}
+	//cout << endl;
+	//glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+	//glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
 #endif // USE_RAY_TRACING
