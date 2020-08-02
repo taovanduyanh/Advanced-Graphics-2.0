@@ -19,12 +19,13 @@ Mesh::Mesh(void) {
 	indices = NULL;
 	
 	numVertices = 0;
+	numNormals = 0;
+	numTexCoords = 0;
 	numIndices = 0;
 
 	texture = 0;
 	bumpTexture = 0;
 
-	// further testing 3..
 	numVisibleFaces = 0;
 
 	type = GL_TRIANGLES;
@@ -52,9 +53,7 @@ Mesh::~Mesh(void) {
 	glDeleteBuffers(MAX, verticesInfoSSBO);
 	glDeleteBuffers(1, &facesInfoSSBO);
 	glDeleteBuffers(1, &visibleFacesIDSSBO);
-
-	// further testing..
-	glDeleteBuffers(1, &testSSBO);
+	glDeleteBuffers(1, &planeDsSSBO);
 #endif
 }
 
@@ -313,19 +312,18 @@ void Mesh::GenerateFacesSSBOs() {
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	// Face ID 
-	std::vector<GLint> collectedID(numFaces, -1);
 	glGenBuffers(1, &visibleFacesIDSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, visibleFacesIDSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, numFaces * sizeof(GLint), collectedID.data(), GL_STATIC_DRAW);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, numFaces * sizeof(GLint), NULL, GL_STATIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX, visibleFacesIDSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-	collectedID.clear();
 
 	// Planes 
-	glGenBuffers(1, &testSSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, testSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, 78 * sizeof(float), NULL, GL_STATIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 15, testSSBO);
+	GLuint numDs = 78;
+	glGenBuffers(1, &planeDsSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, planeDsSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, numDs * sizeof(float), NULL, GL_STATIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 12, planeDsSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
@@ -344,30 +342,11 @@ void Mesh::UpdateCollectedID() {
 		}
 	}
 
-	// further testing 3..
 	numVisibleFaces = static_cast<GLuint>(collectedID.size());
 
 	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, collectedID.size() * sizeof(GLint), collectedID.data());
 	collectedID.clear();
-}
-
-void Mesh::ResetSSBOs() {
-	std::vector<GLint> collectedID(numFaces, -1);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, visibleFacesIDSSBO);
-	glClearBufferData(GL_SHADER_STORAGE_BUFFER, GL_R32I, GL_RED_INTEGER, GL_INT, collectedID.data());
-	collectedID.clear();
-
-	// further testing..
-
-	//glBindBuffer(GL_SHADER_STORAGE_BUFFER, testSSBO);
-	//float* d = (float*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
-	//for (int i = 0; i < 78; i += 2) {
-	//	cout << d[i] << " " << d[i + 1] << endl;
-	//}
-	//cout << endl;
-	//glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-	//glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
 #endif // USE_RAY_TRACING

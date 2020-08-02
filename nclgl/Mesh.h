@@ -43,9 +43,6 @@ public:
 	static Mesh* GenerateTriangleRayTracing();
 	static Mesh* GenerateQuadRayTracing();
 
-	// Clear the main SSBOs..
-	void ResetSSBOs();
-
 	// Mainly for compute shaders..
 	GLuint GetNumFaces() const { return numFaces; }
 
@@ -99,10 +96,7 @@ protected:
 	GLuint facesInfoSSBO;
 	GLuint visibleFacesIDSSBO;
 
-	// further testing 2..
-	GLuint testSSBO;
-
-	// further testing 3..
+	GLuint planeDsSSBO;
 	GLuint numVisibleFaces;
 
 	// A triangle/face always has three vertices.. 

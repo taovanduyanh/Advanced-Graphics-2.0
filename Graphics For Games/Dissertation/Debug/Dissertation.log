@@ -1,9 +1,9 @@
 ﻿  Renderer.cpp
-E:\Misc\Diss 2020\Graphics For Games\Dissertation\Renderer.cpp(73,31): warning C4244: '=': conversion from 'double' to 'GLuint', possible loss of data
-E:\Misc\Diss 2020\Graphics For Games\Dissertation\Renderer.cpp(74,84): warning C4244: '=': conversion from 'double' to 'GLuint', possible loss of data
-E:\Misc\Diss 2020\Graphics For Games\Dissertation\Renderer.cpp(75,85): warning C4244: '=': conversion from 'double' to 'GLuint', possible loss of data
-E:\Misc\Diss 2020\Graphics For Games\Dissertation\Renderer.cpp(134,21): warning C4018: '>': signed/unsigned mismatch
-E:\Misc\Diss 2020\Graphics For Games\Dissertation\Renderer.cpp(135,91): warning C4244: '=': conversion from 'double' to 'GLuint', possible loss of data
-E:\Misc\Diss 2020\Graphics For Games\Dissertation\Renderer.cpp(154,32): warning C4244: '=': conversion from 'double' to 'GLuint', possible loss of data
-E:\Misc\Diss 2020\Graphics For Games\Dissertation\Renderer.cpp(156,82): warning C4244: '=': conversion from 'double' to 'GLuint', possible loss of data
+E:\Misc\Diss 2020\Graphics For Games\Dissertation\Renderer.cpp(76,31): warning C4244: '=': conversion from 'double' to 'GLuint', possible loss of data
+E:\Misc\Diss 2020\Graphics For Games\Dissertation\Renderer.cpp(77,84): warning C4244: '=': conversion from 'double' to 'GLuint', possible loss of data
+E:\Misc\Diss 2020\Graphics For Games\Dissertation\Renderer.cpp(78,85): warning C4244: '=': conversion from 'double' to 'GLuint', possible loss of data
+E:\Misc\Diss 2020\Graphics For Games\Dissertation\Renderer.cpp(133,21): warning C4018: '>': signed/unsigned mismatch
+E:\Misc\Diss 2020\Graphics For Games\Dissertation\Renderer.cpp(134,91): warning C4244: '=': conversion from 'double' to 'GLuint', possible loss of data
+E:\Misc\Diss 2020\Graphics For Games\Dissertation\Renderer.cpp(153,32): warning C4244: '=': conversion from 'double' to 'GLuint', possible loss of data
+E:\Misc\Diss 2020\Graphics For Games\Dissertation\Renderer.cpp(155,82): warning C4244: '=': conversion from 'double' to 'GLuint', possible loss of data
   Dissertation.vcxproj -> E:\Misc\Diss 2020\Graphics For Games\Debug\Dissertation.exe

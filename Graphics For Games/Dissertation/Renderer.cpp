@@ -10,27 +10,31 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	//camera->SetPosition(Vector3(150, 250, 7500));
 
 	// shaders..
-	meshReader = new Shader(SHADERDIR"AnotherCompute.glsl");
-	testShader = new Shader(SHADERDIR"Testing.glsl");
-	testShader2 = new Shader(SHADERDIR"Testing2.glsl");
-	testShader3 = new Shader(SHADERDIR"Testing3.glsl");
-	testShader4 = new Shader(SHADERDIR"Testing4.glsl");
-	rayTracerShader = new Shader(SHADERDIR"BasicCompute.glsl");
+	meshReader = new Shader(SHADERDIR"MeshReader.glsl");
+	volumeCreatorFirst = new Shader(SHADERDIR"VolumeCreatorFirst.glsl");
+	volumeCreatorSecond = new Shader(SHADERDIR"VolumeCreatorSecond.glsl");
+	volumeCreatorThird = new Shader(SHADERDIR"VolumeCreatorThird.glsl");
+	volumeCreatorDefault = new Shader(SHADERDIR"VolumeCreatorDefault.glsl");
+	rayTracerShader = new Shader(SHADERDIR"RayTracer.glsl");
 	finalShader = new Shader(SHADERDIR"TexturedVertex.glsl", SHADERDIR"TexturedFragment.glsl");
 
-	if (!meshReader->LinkProgram() || !testShader->LinkProgram() || !testShader2->LinkProgram() || !testShader3->LinkProgram() || !testShader4->LinkProgram() || !rayTracerShader->LinkProgram() || !finalShader->LinkProgram()) {
+	if (!meshReader->LinkProgram() || !volumeCreatorFirst->LinkProgram() || !volumeCreatorSecond->LinkProgram() 
+		|| !volumeCreatorThird->LinkProgram() || !volumeCreatorDefault->LinkProgram() 
+		|| !rayTracerShader->LinkProgram() || !finalShader->LinkProgram()) {
 		return;
 	}
 
-	// further testing 3..
-	glGenBuffers(2, tempSSBO);
-
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, tempSSBO[0]);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, tempSSBO[0]);
+	// SSBO to temporarily store the dmin and dmax from the chosen plane normals..
+	glGenBuffers(2, tempPlaneDsSSBO);
+	
+	// first one
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, tempPlaneDsSSBO[0]);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, tempPlaneDsSSBO[0]);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, tempSSBO[1]);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 20, tempSSBO[1]);
+	// second one
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, tempPlaneDsSSBO[1]);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 11, tempPlaneDsSSBO[1]);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	// Stuffs related to compute shader..
@@ -69,12 +73,11 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	// fov here..
 	fov = 45.0f;
 
-	// further testing..
 	rayTracerNumInvo = std::round(std::sqrt(static_cast<double>(maxWorkItemsPerGroup)));
 	rayTracerNumGroups[0] = std::round(static_cast<double>(width / rayTracerNumInvo)) + 1;
 	rayTracerNumGroups[1] = std::round(static_cast<double>(height / rayTracerNumInvo)) + 1;
 
-	// further testing 2..
+	// further testing..
 	light = new Light();
 	light->SetPosition(Vector3(20, 100, 0));
 	//light->SetColour(Vector4(0.98f, 0.45f, 0.99f, 1.0f));	
@@ -89,20 +92,20 @@ Renderer::~Renderer(void) {
 	delete camera;
 
 	delete meshReader;
-	delete testShader;
-	delete testShader2;
-	delete testShader3;
-	delete testShader4;
+	delete volumeCreatorFirst;
+	delete volumeCreatorSecond;
+	delete volumeCreatorThird;
+	delete volumeCreatorDefault;
 	delete rayTracerShader;
 	delete finalShader;
+
 	currentShader = NULL;
 
 	delete light;
 
 	glDeleteTextures(1, &image);
 
-	// further testing..
-	glDeleteBuffers(2, tempSSBO);
+	glDeleteBuffers(2, tempPlaneDsSSBO);
 }
 
 void Renderer::UpdateScene(float msec) {
@@ -114,10 +117,6 @@ void Renderer::ResetCamera() {
 	camera->SetPosition(Vector3(0.0f, 0.0f, 0.0f));
 	camera->SetPitch(0.0f);
 	camera->SetYaw(0.0f);
-}
-
-void Renderer::ResetBuffers() {
-	triangle->ResetSSBOs();
 }
 
 void Renderer::InitMeshReading() {
@@ -160,7 +159,7 @@ void Renderer::InitBoundingVolume() {
 }
 
 void Renderer::InitBoundingVolumeDefault(GLuint numVisibleFaces) {
-	SetCurrentShader(testShader4);
+	SetCurrentShader(volumeCreatorDefault);
 
 	UpdateShaderMatrices();
 	glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numVisibleFaces"), numVisibleFaces);
@@ -171,10 +170,10 @@ void Renderer::InitBoundingVolumeDefault(GLuint numVisibleFaces) {
 
 void Renderer::InitBoundingVolumeMulti(GLuint numWorkGroups, GLuint numFacesPerGroup, GLuint numVisibleFaces) {
 	// first stage..
-	SetCurrentShader(testShader);
+	SetCurrentShader(volumeCreatorFirst);
 	UpdateShaderMatrices();
 
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, tempSSBO[0]);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, tempPlaneDsSSBO[0]);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, numVisibleFaces * NUM_PLANE_NORMALS * 2 * sizeof(float), NULL, GL_STATIC_DRAW);
 	glBindBuffer(GL_SHADER_STORAGE_BARRIER_BIT, 0);
 
@@ -184,9 +183,9 @@ void Renderer::InitBoundingVolumeMulti(GLuint numWorkGroups, GLuint numFacesPerG
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
 	// second stage..
-	SetCurrentShader(testShader2);
+	SetCurrentShader(volumeCreatorSecond);
 
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, tempSSBO[1]);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, tempPlaneDsSSBO[1]);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, numWorkGroups * NUM_PLANE_NORMALS * 2 * sizeof(float), NULL, GL_STATIC_DRAW);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
@@ -197,7 +196,7 @@ void Renderer::InitBoundingVolumeMulti(GLuint numWorkGroups, GLuint numFacesPerG
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
 	// third stage..
-	SetCurrentShader(testShader3);
+	SetCurrentShader(volumeCreatorThird);
 
 	glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numGroups"), numWorkGroups);
 
@@ -216,10 +215,8 @@ void Renderer::InitRayTracing() {
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, triangle->GetTexture());
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "diffuse"), 1);
-	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "scaleVector"), 1, (float*)&modelMatrix.GetScalingVector());
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "useTexture"), triangle->GetTexture());
 	glUniform2f(glGetUniformLocation(currentShader->GetProgram(), "pixelSize"), 1.0f / width, 1.0f / height);
-	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraPos"), 1, (float*)&camera->GetPosition());
 	glUniform1f(glGetUniformLocation(currentShader->GetProgram(), "fov"), fov);
 
 	glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numVisibleFaces"), triangle->GetNumVisibleFaces());
@@ -254,5 +251,4 @@ void Renderer::RenderScene() {
 	InitRayTracing();
 	InitFinalScene();
 	SwapBuffers();
-	ResetBuffers();
 }

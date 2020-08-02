@@ -27,8 +27,6 @@ protected:
 	void InitRayTracing();
 	void InitFinalScene();
 
-	void ResetBuffers();
-
 	Mesh* triangle;
 	Mesh* sceneQuad;
 	Camera* camera;
@@ -41,18 +39,17 @@ protected:
 	// testing..
 	float fov;
 	Shader* meshReader;	
-	Shader* testShader;
-	Shader* testShader2;
-	Shader* testShader3;
-	Shader* testShader4;
+	Shader* volumeCreatorFirst;
+	Shader* volumeCreatorSecond;
+	Shader* volumeCreatorThird;
+	Shader* volumeCreatorDefault;
 	Shader* rayTracerShader;
 	Shader* finalShader;
 
 	// further testing..
 	Light* light;
 
-	// further testing 3..
-	GLuint tempSSBO[2];
+	GLuint tempPlaneDsSSBO[2];
 
 	GLuint rayTracerNumInvo;
 	GLuint rayTracerNumGroups[2]; // for both group x and y
