@@ -21,7 +21,6 @@ protected:
 	void InitMeshReading();
 
 	void InitBoundingVolume();
-	void InitBoundingVolumeDefault(GLuint numVisibleFaces);
 	void InitBoundingVolumeMulti(GLuint numWorkGroups, GLuint numFacesPerGroup, GLuint numVisibleFaces);
 
 	void InitRayTracing();
@@ -34,7 +33,7 @@ protected:
 	// Max number of work groups, work items and amount of items/invocations allow in a work group
 	GLint maxWorkGroups[3];
 	GLint maxWorkGroupSizes[3];
-	GLint maxWorkItemsPerGroup;
+	GLint maxInvosPerGroup;
 
 	// testing..
 	float fov;
@@ -42,7 +41,6 @@ protected:
 	Shader* volumeCreatorFirst;
 	Shader* volumeCreatorSecond;
 	Shader* volumeCreatorThird;
-	Shader* volumeCreatorDefault;
 	Shader* rayTracerShader;
 	Shader* finalShader;
 

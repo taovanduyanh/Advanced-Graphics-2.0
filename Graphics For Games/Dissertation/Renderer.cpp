@@ -14,13 +14,11 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	volumeCreatorFirst = new Shader(SHADERDIR"VolumeCreatorFirst.glsl");
 	volumeCreatorSecond = new Shader(SHADERDIR"VolumeCreatorSecond.glsl");
 	volumeCreatorThird = new Shader(SHADERDIR"VolumeCreatorThird.glsl");
-	volumeCreatorDefault = new Shader(SHADERDIR"VolumeCreatorDefault.glsl");
 	rayTracerShader = new Shader(SHADERDIR"RayTracer.glsl");
 	finalShader = new Shader(SHADERDIR"TexturedVertex.glsl", SHADERDIR"TexturedFragment.glsl");
 
 	if (!meshReader->LinkProgram() || !volumeCreatorFirst->LinkProgram() || !volumeCreatorSecond->LinkProgram() 
-		|| !volumeCreatorThird->LinkProgram() || !volumeCreatorDefault->LinkProgram() 
-		|| !rayTracerShader->LinkProgram() || !finalShader->LinkProgram()) {
+		|| !volumeCreatorThird->LinkProgram() || !rayTracerShader->LinkProgram() || !finalShader->LinkProgram()) {
 		return;
 	}
 
@@ -50,7 +48,7 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 
 	// Total amount of invocations you can have in a work group
 	// => be careful about dividing the work among the invocations
-	glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &maxWorkItemsPerGroup);
+	glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &maxInvosPerGroup);
 
 	// Image to shoot rays from..
 	glGenTextures(1, &image);
@@ -73,11 +71,12 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	// fov here..
 	fov = 45.0f;
 
-	rayTracerNumInvo = std::round(std::sqrt(static_cast<double>(maxWorkItemsPerGroup)));
+	rayTracerNumInvo = std::round(std::sqrt(static_cast<double>(maxInvosPerGroup)));
 	rayTracerNumGroups[0] = std::round(static_cast<double>(width / rayTracerNumInvo)) + 1;
 	rayTracerNumGroups[1] = std::round(static_cast<double>(height / rayTracerNumInvo)) + 1;
 
 	// further testing..
+	// lighting..
 	light = new Light();
 	light->SetPosition(Vector3(20, 100, 0));
 	//light->SetColour(Vector4(0.98f, 0.45f, 0.99f, 1.0f));	
@@ -95,7 +94,6 @@ Renderer::~Renderer(void) {
 	delete volumeCreatorFirst;
 	delete volumeCreatorSecond;
 	delete volumeCreatorThird;
-	delete volumeCreatorDefault;
 	delete rayTracerShader;
 	delete finalShader;
 
@@ -127,15 +125,15 @@ void Renderer::InitMeshReading() {
 	glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numTriangles"), triangle->GetNumFaces());
 
 	// Dividing the work here..
-	GLuint numWorkGroupsX = 1;
+	GLuint numWorkGroups = 1;
 	GLuint numInvocations = triangle->GetNumFaces();
 
-	if (numInvocations > maxWorkItemsPerGroup) {
-		numWorkGroupsX = std::round(static_cast<double>(numInvocations / maxWorkItemsPerGroup)) + 1;
-		numInvocations = maxWorkItemsPerGroup;
+	if (numInvocations > maxInvosPerGroup) {
+		numWorkGroups = std::round(static_cast<double>(numInvocations / maxInvosPerGroup)) + 1;
+		numInvocations = maxInvosPerGroup;
 	}
 
-	glDispatchComputeGroupSizeARB(numWorkGroupsX, 1, 1, numInvocations, 1, 1);
+	glDispatchComputeGroupSizeARB(numWorkGroups, 1, 1, numInvocations, 1, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 	triangle->UpdateCollectedID();
 }
@@ -145,27 +143,16 @@ void Renderer::InitBoundingVolume() {
 	GLuint numFacesPerGroup = 1;
 	GLuint numVisibleFaces = triangle->GetNumVisibleFaces();
 
-	if (numVisibleFaces <= NUM_PLANE_NORMALS) {
-		InitBoundingVolumeDefault(numVisibleFaces);
-		//InitBoundingVolumeMulti(numWorkGroups, numVisibleFaces, numVisibleFaces);
+	if ((numVisibleFaces * NUM_PLANE_NORMALS) <= maxInvosPerGroup) {
+		numFacesPerGroup = numVisibleFaces;
 	}
 	else {
-		numFacesPerGroup = std::round(maxWorkItemsPerGroup / NUM_PLANE_NORMALS);
-		double invNumInvoX = 1.0 / numFacesPerGroup;
+		numFacesPerGroup = std::round(maxInvosPerGroup / NUM_PLANE_NORMALS);
+		double invNumInvoX = 1.0 / numFacesPerGroup;	// maybe cast it?
 		numWorkGroups = std::round(static_cast<double>(numVisibleFaces * invNumInvoX)) + 1;
-
-		InitBoundingVolumeMulti(numWorkGroups, numFacesPerGroup, numVisibleFaces);
 	}
-}
 
-void Renderer::InitBoundingVolumeDefault(GLuint numVisibleFaces) {
-	SetCurrentShader(volumeCreatorDefault);
-
-	UpdateShaderMatrices();
-	glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numVisibleFaces"), numVisibleFaces);
-
-	glDispatchComputeGroupSizeARB(1, 1, 1, 1, NUM_PLANE_NORMALS, 1);
-	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	InitBoundingVolumeMulti(numWorkGroups, numFacesPerGroup, numVisibleFaces);
 }
 
 void Renderer::InitBoundingVolumeMulti(GLuint numWorkGroups, GLuint numFacesPerGroup, GLuint numVisibleFaces) {

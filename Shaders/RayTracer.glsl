@@ -160,7 +160,8 @@ bool rayIntersectsVolume(Ray ray) {
             tFar = tempTF;
         }
 
-        if (tNear > tFar) {
+        // Check tFar against epsilon to prevent "mirror" volume (idk how to describe this lol) 
+        if (tNear > tFar || tFar <= EPSILON) {
             return false;
         }
     }
@@ -183,9 +184,12 @@ bool rayIntersectsTriangle(out Ray ray, Triangle triangle) {
     vec3 pVec = cross(ray.direction, b);
     float determinator = dot(a, pVec);
 
+    /*
+    don't need this if statement?
     if (abs(determinator) < EPSILON) {
-        return false;
+        return true;
     }
+    */
 
     float invDet = 1 / determinator;
 
@@ -247,7 +251,7 @@ vec4 getFinalColour(ivec2 pixelCoords) {
     // We're now using Ks' bounding volume..
     // but we are not using their plane normals, we use the normals gotten from icosphere instead..
     if (rayIntersectsVolume(ray)) {
-        //finalColour += vec4(0.0, 0.05, 0.0, 1.0);
+        finalColour += vec4(0.0, 0.05, 0.0, 1.0);
         for (int i = 0; i < numVisibleFaces; ++i) {
             if (rayIntersectsTriangle(ray, facesSSBO[idSSBO[i]])) {
                 if (useTexture > 0) {
