@@ -27,12 +27,12 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	
 	// first one
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, tempPlaneDsSSBO[0]);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, tempPlaneDsSSBO[0]);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, tempPlaneDsSSBO[0]);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	// second one
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, tempPlaneDsSSBO[1]);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 11, tempPlaneDsSSBO[1]);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 9, tempPlaneDsSSBO[1]);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	// Stuffs related to compute shader..
@@ -72,15 +72,15 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	fov = 45.0f;
 
 	rayTracerNumInvo = std::round(std::sqrt(static_cast<double>(maxInvosPerGroup)));
-	rayTracerNumGroups[0] = std::round(static_cast<double>(width / rayTracerNumInvo)) + 1;
-	rayTracerNumGroups[1] = std::round(static_cast<double>(height / rayTracerNumInvo)) + 1;
+	rayTracerNumGroups[0] = std::round(static_cast<double>(width) / rayTracerNumInvo) + 1;
+	rayTracerNumGroups[1] = std::round(static_cast<double>(height) / rayTracerNumInvo) + 1;
 
 	// further testing..
 	// lighting..
 	light = new Light();
-	light->SetPosition(Vector3(20, 100, 0));
-	//light->SetColour(Vector4(0.98f, 0.45f, 0.99f, 1.0f));	
-	light->SetColour(Vector4(1.0f, 1.0f, 1.0f, 1.0f));
+	light->SetPosition(Vector3(0, 1000, 50));
+	light->SetColour(Vector4(0.98f, 0.45f, 0.99f, 1.0f));	
+	//light->SetColour(Vector4(1.0f, 1.0f, 1.0f, 1.0f));
 
 	init = true;
 }
@@ -205,12 +205,12 @@ void Renderer::InitRayTracing() {
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "useTexture"), triangle->GetTexture());
 	glUniform2f(glGetUniformLocation(currentShader->GetProgram(), "pixelSize"), 1.0f / width, 1.0f / height);
 	glUniform1f(glGetUniformLocation(currentShader->GetProgram(), "fov"), fov);
-
 	glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numVisibleFaces"), triangle->GetNumVisibleFaces());
 
 	UpdateShaderMatrices();
 	SetShaderLight(*light);
 
+	//glDispatchComputeGroupSizeARB(width, 1, 1, 1, height, 1);
 	glDispatchComputeGroupSizeARB(rayTracerNumGroups[0], rayTracerNumGroups[1], 1, rayTracerNumInvo, rayTracerNumInvo, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);	// makes sure the ssbo/image is written before
 

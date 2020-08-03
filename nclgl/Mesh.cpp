@@ -314,7 +314,7 @@ void Mesh::GenerateFacesSSBOs() {
 	// Face ID 
 	glGenBuffers(1, &visibleFacesIDSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, visibleFacesIDSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, numFaces * sizeof(GLint), NULL, GL_STATIC_DRAW);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, numFaces * sizeof(GLint), NULL, GL_DYNAMIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX, visibleFacesIDSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
@@ -322,8 +322,8 @@ void Mesh::GenerateFacesSSBOs() {
 	GLuint numDs = 78;
 	glGenBuffers(1, &planeDsSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, planeDsSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, numDs * sizeof(float), NULL, GL_STATIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 12, planeDsSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, numDs * sizeof(float), NULL, GL_DYNAMIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX + 2, planeDsSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
@@ -335,7 +335,7 @@ void Mesh::GenerateSSBOs() {
 void Mesh::UpdateCollectedID() {
 	std::vector<GLint> collectedID;
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, visibleFacesIDSSBO);
-	GLint* ptr = (GLint*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
+	GLint* ptr = (GLint*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
 	for (int i = 0; i < numFaces; ++i) {
 		if (ptr[i] != -1) {
 			collectedID.push_back(ptr[i]);
@@ -345,8 +345,9 @@ void Mesh::UpdateCollectedID() {
 	numVisibleFaces = static_cast<GLuint>(collectedID.size());
 
 	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, collectedID.size() * sizeof(GLint), collectedID.data());
-	collectedID.clear();
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
 #endif // USE_RAY_TRACING

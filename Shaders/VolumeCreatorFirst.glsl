@@ -20,7 +20,7 @@ layout(std430, binding = 6) buffer Faces {
     Triangle facesSSBO[];
 };
 
-layout(std430, binding = 10) buffer TempDsFirst {
+layout(std430, binding = 8) buffer TempDsFirst {
     float tempFirst[][2];
 };
 

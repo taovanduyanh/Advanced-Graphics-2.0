@@ -3,11 +3,11 @@
 #extension GL_ARB_compute_variable_group_size : enable
 
 // further testing 4..
-layout(std430, binding = 11) buffer TempDsSecond {
+layout(std430, binding = 9) buffer TempDsSecond {
     float tempSecond[][2];
 };
 
-layout(std430, binding = 12) buffer PlaneDs {
+layout(std430, binding = 7) buffer PlaneDs {
     float dSSBO[39][2];
 };
 

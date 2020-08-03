@@ -16,7 +16,7 @@ struct Ray {
     vec3 direction;
     vec3 barycentricCoord; // xyz == uvw..
     float t;
-} ray, shadowRay;
+};
 
 layout(std430, binding = 0) buffer Positions {
     vec4 posSSBO[];
@@ -34,13 +34,13 @@ layout(std430, binding = 6) buffer Faces {
     Triangle facesSSBO[];
 };
 
-layout(std430, binding = 12) buffer PlaneDs {
+layout(std430, binding = 7) buffer PlaneDs {
     float dSSBO[36][2];
 };
 
 layout(local_size_variable) in;
 
-/*
+
 const vec3 kSNormals[7] = vec3[7](vec3(1, 0, 0),
                                   vec3(0, 1, 0),
                                   vec3(0, 0, 1),
@@ -48,7 +48,7 @@ const vec3 kSNormals[7] = vec3[7](vec3(1, 0, 0),
                                   vec3(-sqrt(3) / 3, sqrt(3) / 3, sqrt(3) / 3),
                                   vec3(-sqrt(3) / 3, -sqrt(3) / 3, sqrt(3) / 3),
                                   vec3(sqrt(3) / 3, -sqrt(3) / 3, sqrt(3) / 3));
-*/
+
 const vec3 nearHalfIcoNormals[39] = vec3[39](
                                          vec3(1.0, 0.0, 0.0),
                                          vec3(0.0, 1.0, 0.0),
@@ -110,11 +110,11 @@ uniform uint numVisibleFaces;
 
 // testing..
 uniform vec4 lightColour;
-uniform vec3 lightPosition;
+uniform vec3 lightPos;
 
 float toRadian(float angle);
 bool rayIntersectsVolume(Ray ray);
-bool rayIntersectsTriangle(out Ray ray, Triangle triangle);   // the 'out' keyword is to "copy the values at the return time" => the ray's values will be modified..
+bool rayIntersectsTriangle(inout Ray ray, Triangle triangle);   // the 'inout' keyword allows the ray's values will be modified..
 vec3 pixelMiddlePoint(ivec2 pixelCoords);
 vec4 getFinalColour(ivec2 pixelCoords);
 
@@ -173,7 +173,7 @@ bool rayIntersectsVolume(Ray ray) {
 Moller - Trumbore algorithm
 Don't need to check for the determinatorsince the Mesh reader already handles the cases behind + parallel?
 */
-bool rayIntersectsTriangle(out Ray ray, Triangle triangle) {
+bool rayIntersectsTriangle(inout Ray ray, Triangle triangle) {
     // three vertices of the current triangle
     vec3 v0 = (modelMatrix * posSSBO[triangle.vertIndices[0]]).xyz;
     vec3 v1 = (modelMatrix * posSSBO[triangle.vertIndices[1]]).xyz;
@@ -183,14 +183,7 @@ bool rayIntersectsTriangle(out Ray ray, Triangle triangle) {
     vec3 b = v2 - v0;
     vec3 pVec = cross(ray.direction, b);
     float determinator = dot(a, pVec);
-
-    /*
-    don't need this if statement?
-    if (abs(determinator) < EPSILON) {
-        return true;
-    }
-    */
-
+    
     float invDet = 1 / determinator;
 
     vec3 tVec = ray.origin - v0;
@@ -239,30 +232,49 @@ float toRadian(float angle) {
 }
 
 vec4 getFinalColour(ivec2 pixelCoords) {
+    bool isInShadow = false;
     vec4 finalColour = vec4(0.2, 0.2, 0.2, 1.0);
     // the middle point of the pixel should be in world space now by multiplying with the inverse view matrix..
     // need to find the middle point of the pixel in world space..
     mat4 inverseViewMatrix = inverse(viewMatrix);
     vec3 middlePoint = pixelMiddlePoint(pixelCoords);
-    ray.origin = (inverseViewMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;   
-    ray.direction = normalize((inverseViewMatrix * vec4(middlePoint, 1.0)).xyz - ray.origin);
-    
+    Ray primaryRay;
+    primaryRay.origin = (inverseViewMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;   
+    primaryRay.direction = (inverseViewMatrix * vec4(middlePoint, 1.0)).xyz - primaryRay.origin;
+
     // IT WORKS!!!
     // We're now using Ks' bounding volume..
     // but we are not using their plane normals, we use the normals gotten from icosphere instead..
-    if (rayIntersectsVolume(ray)) {
-        finalColour += vec4(0.0, 0.05, 0.0, 1.0);
+    if (rayIntersectsVolume(primaryRay)) {
+        //finalColour += vec4(0.0, 0.05, 0.0, 1.0);
         for (int i = 0; i < numVisibleFaces; ++i) {
-            if (rayIntersectsTriangle(ray, facesSSBO[idSSBO[i]])) {
+            int intersectedID = idSSBO[i];
+            if (rayIntersectsTriangle(primaryRay, facesSSBO[intersectedID])) {
+                
+                /*
+                Ray shadowRay;
+                shadowRay.origin = primaryRay.origin + primaryRay.direction * primaryRay.t;
+                shadowRay.direction = normalize(lightPos - shadowRay.origin);
+                
+                for (int j = 0; j < facesSSBO.length(); ++j) {
+                    if (j != intersectedID && rayIntersectsTriangle(shadowRay, facesSSBO[j])) {
+                        isInShadow = true;
+                        break;
+                    }
+                }
+                //*/           
+
                 if (useTexture > 0) {
-                    vec2 tc0 = texCoordsSSBO[facesSSBO[idSSBO[i]].texIndices[0]];
-                    vec2 tc1 = texCoordsSSBO[facesSSBO[idSSBO[i]].texIndices[1]];
-                    vec2 tc2 = texCoordsSSBO[facesSSBO[idSSBO[i]].texIndices[2]];
-                    vec2 texCoord = ray.barycentricCoord.z * tc0 + ray.barycentricCoord.x * tc1 + ray.barycentricCoord.y * tc2;
+                    vec2 tc0 = texCoordsSSBO[facesSSBO[intersectedID].texIndices[0]];
+                    vec2 tc1 = texCoordsSSBO[facesSSBO[intersectedID].texIndices[1]];
+                    vec2 tc2 = texCoordsSSBO[facesSSBO[intersectedID].texIndices[2]];
+                    vec2 texCoord = primaryRay.barycentricCoord.z * tc0 + primaryRay.barycentricCoord.x * tc1 + primaryRay.barycentricCoord.y * tc2;
+                    //return isInShadow ? texture(diffuse, texCoord) * vec4(0.5, 0.5, 0.5, 1.0) : texture(diffuse, texCoord) * lightColour;
                     return texture(diffuse, texCoord) * lightColour;
                 }
                 else {
-                    return vec4(ray.barycentricCoord, 1.0) * lightColour;
+                    //return isInShadow ? vec4(primaryRay.barycentricCoord, 1.0) * vec4(0.5, 0.5, 0.5, 1.0) : vec4(primaryRay.barycentricCoord, 1.0) * lightColour;
+                    return vec4(primaryRay.barycentricCoord, 1.0) * lightColour;
                 }
             }
         }

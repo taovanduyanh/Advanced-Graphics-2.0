@@ -3,5 +3,5 @@ E:\Misc\Diss 2020\nclgl\Mesh.cpp(196,20): warning C4018: '<': signed/unsigned mi
 E:\Misc\Diss 2020\nclgl\Mesh.cpp(239,20): warning C4018: '<': signed/unsigned mismatch
 E:\Misc\Diss 2020\nclgl\Mesh.cpp(295,20): warning C4018: '<': signed/unsigned mismatch
 E:\Misc\Diss 2020\nclgl\Mesh.cpp(339,20): warning C4018: '<': signed/unsigned mismatch
-E:\Misc\Diss 2020\nclgl\Mesh.cpp(359,20): warning C4018: '<': signed/unsigned mismatch
+E:\Misc\Diss 2020\nclgl\Mesh.cpp(360,20): warning C4018: '<': signed/unsigned mismatch
   nclgl.vcxproj -> E:\Misc\Diss 2020\Graphics For Games\Debug\nclgl.lib
