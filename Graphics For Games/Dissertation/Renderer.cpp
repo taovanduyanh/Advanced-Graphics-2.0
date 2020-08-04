@@ -79,8 +79,8 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	// lighting..
 	light = new Light();
 	light->SetPosition(Vector3(0, 1000, 50));
-	light->SetColour(Vector4(0.98f, 0.45f, 0.99f, 1.0f));	
-	//light->SetColour(Vector4(1.0f, 1.0f, 1.0f, 1.0f));
+	//light->SetColour(Vector4(0.98f, 0.45f, 0.99f, 1.0f));	
+	light->SetColour(Vector4(1.0f, 1.0f, 1.0f, 1.0f));
 
 	init = true;
 }

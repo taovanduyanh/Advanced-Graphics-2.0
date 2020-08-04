@@ -5,7 +5,7 @@
 #include "../../nclgl/Light.h"
 #include <algorithm>
 
-constexpr auto NUM_PLANE_NORMALS = 39;
+constexpr auto NUM_PLANE_NORMALS = 19;
 
 class Renderer : public OGLRenderer {
 public:

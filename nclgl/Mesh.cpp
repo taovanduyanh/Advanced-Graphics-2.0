@@ -319,7 +319,7 @@ void Mesh::GenerateFacesSSBOs() {
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	// Planes 
-	GLuint numDs = 78;
+	GLuint numDs = 38;
 	glGenBuffers(1, &planeDsSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, planeDsSSBO);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, numDs * sizeof(float), NULL, GL_DYNAMIC_DRAW);

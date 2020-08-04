@@ -8,12 +8,12 @@ layout(std430, binding = 9) buffer TempDsSecond {
 };
 
 layout(std430, binding = 7) buffer PlaneDs {
-    float dSSBO[39][2];
+    float dSSBO[][2];
 };
 
 layout(local_size_variable) in;
 
-const uint numPlaneNormals = 39;
+const uint numPlaneNormals = 19;
 uniform uint numGroups;
 
 void main() {

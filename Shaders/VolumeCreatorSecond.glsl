@@ -13,7 +13,7 @@ layout(std430, binding = 9) buffer TempDsSecond {
 
 layout(local_size_variable) in;
 
-const uint numPlaneNormals = 39;
+const uint numPlaneNormals = 19;
 uniform uint numFacesPerGroup;
 uniform uint maxIndex;
 
