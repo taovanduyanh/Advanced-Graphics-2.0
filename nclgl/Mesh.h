@@ -50,6 +50,9 @@ public:
 
 	GLuint GetNumVisibleFaces() const { return numVisibleFaces; }
 
+	// remove this later..
+	void PrintDistances();
+
 #endif // USE_RAY_TRACING
 
 protected:

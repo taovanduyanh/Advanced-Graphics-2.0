@@ -20,13 +20,24 @@ layout(std430, binding = 6) buffer Faces {
     Triangle facesSSBO[];
 };
 
-layout(std430, binding = 20) buffer VisibleFacesNormals {
-    vec4 visibleNormals[];
-};
-
 layout(std430, binding = 7) buffer PlaneDs {
     float dSSBO[][2];
 };
+
+const vec3 kSNormals[7] = vec3[7](vec3(1, 0, 0),
+                                  vec3(0, 1, 0),
+                                  vec3(0, 0, 1),
+                                  vec3(sqrt(3) / 3),
+                                  vec3(-sqrt(3) / 3, sqrt(3) / 3, sqrt(3) / 3),
+                                  vec3(-sqrt(3) / 3, -sqrt(3) / 3, sqrt(3) / 3),
+                                  vec3(sqrt(3) / 3, -sqrt(3) / 3, sqrt(3) / 3));
+
+const vec3 defaultNormals[3] = vec3[3]
+(
+    vec3(1, 0, 0),
+    vec3(0, 1, 0),
+    vec3(0, 0, 1)
+);
 
 uniform uint numVisibleFaces;
 uniform mat4 modelMatrix;
@@ -34,37 +45,21 @@ uniform mat4 modelMatrix;
 layout(local_size_variable) in;
 
 void main() {
-    for (int i = 0; i < numVisibleFaces; ++i) {
-        dSSBO[i][0] = 1.0 / 0.0;  // infinity
-        dSSBO[i][1] = -1.0 / 0.0; // neg infinity
+    // further testing 6..
+    if (gl_GlobalInvocationID.x >= numVisibleFaces) {
+        return;
     }
 
-    // further testing 5..
-    for (int i = 0; i < numVisibleFaces; ++i) {
-        int triangleID = idSSBO[i];
-        for (int j = 0; j < 3; ++j) {
-            vec3 currVertex = (modelMatrix * posSSBO[facesSSBO[triangleID].vertIndices[j]]).xyz;
-            float d = dot(currVertex, visibleNormals[triangleID].xyz);
+    dSSBO[gl_GlobalInvocationID.x * kSNormals.length() + gl_GlobalInvocationID.y][0] = 1.0 / 0.0;
+    dSSBO[gl_GlobalInvocationID.x * kSNormals.length() + gl_GlobalInvocationID.y][1] = -1.0 / 0.0;
 
-            dSSBO[i][0] = min(d, dSSBO[i][0]);
-        }
+    int triangleID = idSSBO[gl_GlobalInvocationID.x];
+
+    for (uint i = 0; i < 3; ++i) {
+        vec3 currVertex = (modelMatrix * posSSBO[facesSSBO[triangleID].vertIndices[i]]).xyz;
+        float d = dot(currVertex, kSNormals[gl_GlobalInvocationID.y]);
+
+        dSSBO[gl_GlobalInvocationID.x * kSNormals.length() + gl_GlobalInvocationID.y][0] = min(d, dSSBO[gl_GlobalInvocationID.x * kSNormals.length() + gl_GlobalInvocationID.y][0]);
+        dSSBO[gl_GlobalInvocationID.x * kSNormals.length() + gl_GlobalInvocationID.y][1] = max(d, dSSBO[gl_GlobalInvocationID.x * kSNormals.length() + gl_GlobalInvocationID.y][1]);
     }
-
-    
-    for (int i = 0; i < numVisibleFaces; ++i) {
-        int currNormalID = idSSBO[i];
-        for (int j = 0; j < numVisibleFaces; ++j) {
-            int triangleID = idSSBO[j];
-            for (int k = 0; k < 3; ++k) {
-                vec3 currVertex = (modelMatrix * posSSBO[facesSSBO[triangleID].vertIndices[k]]).xyz;
-                float d = dot(currVertex, visibleNormals[currNormalID].xyz);
-
-                //dSSBO[i][0] = min(d, dSSBO[i][0]);
-                dSSBO[i][1] = max(d, dSSBO[i][1]);
-            }
-        }
-    }
-   
-    memoryBarrierBuffer();
-    barrier();
 }

@@ -5,7 +5,7 @@
 #include "../../nclgl/Light.h"
 #include <algorithm>
 
-constexpr auto NUM_PLANE_NORMALS = 19;
+constexpr auto NUM_PLANE_NORMALS = 7;
 
 class Renderer : public OGLRenderer {
 public:
@@ -43,6 +43,9 @@ protected:
 	Shader* volumeCreatorThird;
 	Shader* rayTracerShader;
 	Shader* finalShader;
+
+	// further testing 6..
+	Shader* testing;
 
 	// further testing..
 	Light* light;

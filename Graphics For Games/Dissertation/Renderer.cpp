@@ -17,8 +17,11 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	rayTracerShader = new Shader(SHADERDIR"RayTracer.glsl");
 	finalShader = new Shader(SHADERDIR"TexturedVertex.glsl", SHADERDIR"TexturedFragment.glsl");
 
+	testing = new Shader(SHADERDIR"VolumeCreatorTesting.glsl");
+
 	if (!meshReader->LinkProgram() || !volumeCreatorFirst->LinkProgram() || !volumeCreatorSecond->LinkProgram() 
-		|| !volumeCreatorThird->LinkProgram() || !rayTracerShader->LinkProgram() || !finalShader->LinkProgram()) {
+		|| !volumeCreatorThird->LinkProgram() || !rayTracerShader->LinkProgram() || !finalShader->LinkProgram()
+		|| !testing->LinkProgram()) {
 		return;
 	}
 
@@ -97,6 +100,9 @@ Renderer::~Renderer(void) {
 	delete rayTracerShader;
 	delete finalShader;
 
+	// further testing 6..
+	delete testing;
+
 	currentShader = NULL;
 
 	delete light;
@@ -152,7 +158,15 @@ void Renderer::InitBoundingVolume() {
 		numWorkGroups = std::round(static_cast<double>(numVisibleFaces * invNumInvoX)) + 1;
 	}
 
-	InitBoundingVolumeMulti(numWorkGroups, numFacesPerGroup, numVisibleFaces);
+	//InitBoundingVolumeMulti(numWorkGroups, numFacesPerGroup, numVisibleFaces);
+
+	SetCurrentShader(testing);
+	UpdateShaderMatrices();
+
+	glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numVisibleFaces"), numVisibleFaces);
+	glDispatchComputeGroupSizeARB(numWorkGroups, 1, 1, numFacesPerGroup, NUM_PLANE_NORMALS, 1);
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	//triangle->PrintDistances();
 }
 
 void Renderer::InitBoundingVolumeMulti(GLuint numWorkGroups, GLuint numFacesPerGroup, GLuint numVisibleFaces) {

@@ -82,27 +82,13 @@ const vec3 nearHalfIcoNormals[19] = vec3[19]
     vec3(0.802606, -0.125648, 0.583126)                                
 );
 
-/*
-const vec3 nearHalfIcoNormals[17] = vec3[17](
-    vec3(-0.270598, 0.707107, -0.653281),
-    vec3(0.382683, 0, -0.923879),
-    vec3(0.31246, 0.57735, -0.754345),
-    vec3(0.653282, 0.707107, -0.270598),
-    vec3(0, 1, 0),
+const vec3 defaultNormals[3] = vec3[3]
+(
     vec3(1, 0, 0),
-    vec3(0, 0, 1),
-    vec3(-0.653282, 0.707107, 0.270598),
-    vec3(-0.31246, 0.57735, 0.754344),
-    vec3(-0.92388, 0, 0.382683),
-    vec3(-0.754344, 0.57735, -0.31246),
-    vec3(0.653281, -0.707107, -0.270598),
-    vec3(0.92388, 0, 0.382683),
-    vec3(0.270598, 0.707107, 0.653281),
-    vec3(0.754344, 0.57735, 0.31246),
-    vec3(-0.653281, -0.707107, 0.270598),
-    vec3(0.382683, 0, 0.923879)
+    vec3(0, 1, 0),
+    vec3(0, 0, 1)
 );
-*/
+
 layout(rgba32f) uniform image2D image;
 uniform sampler2D diffuse;
 uniform int useTexture;
@@ -117,7 +103,7 @@ uniform vec4 lightColour;
 uniform vec3 lightPos;
 
 float toRadian(float angle);
-bool rayIntersectsVolume(Ray ray);
+bool rayIntersectsVolume(Ray ray, uint index);
 bool rayIntersectsTriangle(inout Ray ray, Triangle triangle);   // the 'inout' keyword allows the ray's values will be modified..
 vec3 pixelMiddlePoint(ivec2 pixelCoords);
 vec4 getFinalColour(ivec2 pixelCoords);
@@ -138,18 +124,18 @@ void main() {
     barrier();
 }
 
-bool rayIntersectsVolume(Ray ray) {
+bool rayIntersectsVolume(Ray ray, uint index) {
     float tNear = -1.0 / 0.0;
     float tFar = 1.0 / 0.0;
 
-    for (uint i = 0; i < nearHalfIcoNormals.length(); ++i) {
-        float planeNormalsDotOrigin = dot(nearHalfIcoNormals[i], ray.origin);
-        float planeNormalsDotDirection = dot(nearHalfIcoNormals[i], ray.direction);
+    for (uint i = 0; i < kSNormals.length(); ++i) {
+        float planeNormalsDotOrigin = dot(kSNormals[i], ray.origin);
+        float planeNormalsDotDirection = dot(kSNormals[i], ray.direction);
 
         float invDenominator = 1 / planeNormalsDotDirection;
 
-        float tempTN = (dSSBO[i][0] - planeNormalsDotOrigin) * invDenominator;
-        float tempTF = (dSSBO[i][1] - planeNormalsDotOrigin) * invDenominator;
+        float tempTN = (dSSBO[index * 7 + i][0] - planeNormalsDotOrigin) * invDenominator;
+        float tempTF = (dSSBO[index * 7 + i][1] - planeNormalsDotOrigin) * invDenominator;
         
         if (planeNormalsDotDirection < EPSILON) {
             float temp = tempTN;
@@ -248,9 +234,31 @@ vec4 getFinalColour(ivec2 pixelCoords) {
 
     // IT WORKS!!!
     // We're now using Ks' bounding volume..
-    // but we are not using their plane normals, we use the normals gotten from icosphere instead..
-    if (rayIntersectsVolume(primaryRay)) {
+    for (int i = 0; i < numVisibleFaces; ++i) {
+        if (rayIntersectsVolume(primaryRay, i)) {
+            finalColour += vec4(0.0, 0.05, 0.0, 1.0);
+            
+            if (rayIntersectsTriangle(primaryRay, facesSSBO[idSSBO[i]])) {
+                if (useTexture > 0) {
+                    vec2 tc0 = texCoordsSSBO[facesSSBO[idSSBO[i]].texIndices[0]];
+                    vec2 tc1 = texCoordsSSBO[facesSSBO[idSSBO[i]].texIndices[1]];
+                    vec2 tc2 = texCoordsSSBO[facesSSBO[idSSBO[i]].texIndices[2]];
+                    vec2 texCoord = primaryRay.barycentricCoord.z * tc0 + primaryRay.barycentricCoord.x * tc1 + primaryRay.barycentricCoord.y * tc2;
+                    //return isInShadow ? texture(diffuse, texCoord) * vec4(0.5, 0.5, 0.5, 1.0) : texture(diffuse, texCoord) * lightColour;
+                    return texture(diffuse, texCoord) * lightColour;
+                }
+                else {
+                    //return isInShadow ? vec4(primaryRay.barycentricCoord, 1.0) * vec4(0.5, 0.5, 0.5, 1.0) : vec4(primaryRay.barycentricCoord, 1.0) * lightColour;
+                    return vec4(primaryRay.barycentricCoord, 1.0) * lightColour;
+                }
+            }
+            
+        }
+    }
+       /*
+    if (rayIntersectsVolume(primaryRay, 0)) {
         finalColour += vec4(0.0, 0.05, 0.0, 1.0);
+     
         for (int i = 0; i < numVisibleFaces; ++i) {
             int intersectedID = idSSBO[i];
             if (rayIntersectsTriangle(primaryRay, facesSSBO[intersectedID])) {
@@ -266,7 +274,7 @@ vec4 getFinalColour(ivec2 pixelCoords) {
                         break;
                     }
                 }
-                //*/           
+                //           
 
                 if (useTexture > 0) {
                     vec2 tc0 = texCoordsSSBO[facesSSBO[intersectedID].texIndices[0]];
@@ -282,7 +290,8 @@ vec4 getFinalColour(ivec2 pixelCoords) {
                 }
             }
         }
+      
     }
-
+  */
     return finalColour;
 }
