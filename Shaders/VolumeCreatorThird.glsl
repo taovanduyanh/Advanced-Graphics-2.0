@@ -13,7 +13,7 @@ layout(std430, binding = 7) buffer PlaneDs {
 
 layout(local_size_variable) in;
 
-const uint numPlaneNormals = 19;
+const uint numPlaneNormals = 43;
 uniform uint numGroups;
 
 void main() {

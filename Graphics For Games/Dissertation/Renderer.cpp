@@ -7,7 +7,9 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 
 	sceneQuad = Mesh::GenerateQuad();
 	camera = new Camera();
-	//camera->SetPosition(Vector3(150, 250, 7500));
+	camera->SetPosition(Vector3(-15, 785, 2250)); // first view.. (note: for deer mesh)
+	//camera->SetPosition(Vector3(2290, 850, 15)); // second view.. (note: for deer mesh)
+	//camera->SetYaw(90); // second view.. (note: for deer mesh)
 
 	// shaders..
 	meshReader = new Shader(SHADERDIR"MeshReader.glsl");
@@ -115,6 +117,7 @@ Renderer::~Renderer(void) {
 void Renderer::UpdateScene(float msec) {
 	camera->UpdateCamera(msec);
 	viewMatrix = camera->BuildViewMatrix();
+	//cout << camera->GetPosition() << endl;
 }
 
 void Renderer::ResetCamera() {
@@ -158,15 +161,14 @@ void Renderer::InitBoundingVolume() {
 		numWorkGroups = std::round(static_cast<double>(numVisibleFaces * invNumInvoX)) + 1;
 	}
 
-	//InitBoundingVolumeMulti(numWorkGroups, numFacesPerGroup, numVisibleFaces);
+	InitBoundingVolumeMulti(numWorkGroups, numFacesPerGroup, numVisibleFaces);
 
-	SetCurrentShader(testing);
-	UpdateShaderMatrices();
+	//SetCurrentShader(testing);
+	//UpdateShaderMatrices();
 
-	glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numVisibleFaces"), numVisibleFaces);
-	glDispatchComputeGroupSizeARB(numWorkGroups, 1, 1, numFacesPerGroup, NUM_PLANE_NORMALS, 1);
-	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-	//triangle->PrintDistances();
+	//glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numVisibleFaces"), numVisibleFaces);
+	//glDispatchComputeGroupSizeARB(numWorkGroups, 1, 1, numFacesPerGroup, NUM_PLANE_NORMALS, 1);
+	//glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
 void Renderer::InitBoundingVolumeMulti(GLuint numWorkGroups, GLuint numFacesPerGroup, GLuint numVisibleFaces) {
@@ -224,7 +226,9 @@ void Renderer::InitRayTracing() {
 	UpdateShaderMatrices();
 	SetShaderLight(*light);
 
-	//glDispatchComputeGroupSizeARB(width, 1, 1, 1, height, 1);
+	// HEAVY TESTING......
+	//glDispatchComputeGroupSizeARB(width, height, 1, numVisibleFaces, 1, 1);
+	//glDispatchComputeGroupSizeARB(width, height, 1, 1, 1, 1);
 	glDispatchComputeGroupSizeARB(rayTracerNumGroups[0], rayTracerNumGroups[1], 1, rayTracerNumInvo, rayTracerNumInvo, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);	// makes sure the ssbo/image is written before
 

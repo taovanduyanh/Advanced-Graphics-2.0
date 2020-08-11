@@ -319,10 +319,10 @@ void Mesh::GenerateFacesSSBOs() {
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	// Planes 
-	//GLuint numDs = 6;
+	GLuint numDs = 86;
 	glGenBuffers(1, &planeDsSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, planeDsSSBO);
-	//glBufferData(GL_SHADER_STORAGE_BUFFER, numDs * sizeof(float), NULL, GL_DYNAMIC_DRAW);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, numDs * sizeof(float), NULL, GL_DYNAMIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX + 2, planeDsSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
@@ -336,6 +336,7 @@ void Mesh::UpdateCollectedID() {
 	std::vector<GLint> collectedID;
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, visibleFacesIDSSBO);
 	GLint* ptr = (GLint*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+
 	for (int i = 0; i < numFaces; ++i) {
 		if (ptr[i] != -1) {
 			collectedID.push_back(ptr[i]);
@@ -349,21 +350,20 @@ void Mesh::UpdateCollectedID() {
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, collectedID.size() * sizeof(GLint), collectedID.data());
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-	// further testing 6..
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, planeDsSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, numVisibleFaces * 7 * 2 * sizeof(float), NULL, GL_DYNAMIC_DRAW);	// 3 for no. normals, 2 for min and max..
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	//glBindBuffer(GL_SHADER_STORAGE_BUFFER, planeDsSSBO);
+	//glBufferData(GL_SHADER_STORAGE_BUFFER, numVisibleFaces * 19 * 2 * sizeof(float), NULL, GL_DYNAMIC_DRAW);	// 3 for no. normals, 2 for min and max..
+	//glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
 void Mesh::PrintDistances() {
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, planeDsSSBO);
-	float* d = static_cast<float*>(glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE));
-	for (int i = 0; i < numVisibleFaces * 7 * 2; i += 2) {
-		cout << d[i] << " " << d[i + 1] << endl;
-	}
-	cout << endl;
-	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	//glBindBuffer(GL_SHADER_STORAGE_BUFFER, planeDsSSBO);
+	//float* d = static_cast<float*>(glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE));
+	//for (int i = 0; i < numVisibleFaces * 7 * 2; i += 2) {
+	//	cout << d[i] << " " << d[i + 1] << endl;
+	//}
+	//cout << endl;
+	//glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+	//glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
 #endif // USE_RAY_TRACING
