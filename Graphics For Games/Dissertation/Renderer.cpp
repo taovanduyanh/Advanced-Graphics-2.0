@@ -2,7 +2,7 @@
 
 Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	triangle = new OBJMesh();
-	dynamic_cast<OBJMesh*>(triangle)->LoadOBJMesh(MESHDIR"sphere.obj");
+	dynamic_cast<OBJMesh*>(triangle)->LoadOBJMesh(MESHDIR"Tree1.obj");
 	//triangle->SetTexutre(SOIL_load_OGL_texture(TEXTUREDIR"brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
 
 	sceneQuad = Mesh::GenerateQuad();
@@ -67,7 +67,7 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	// further testing..
 	// lighting..
 	light = new Light();
-	light->SetPosition(Vector3(0, 1000, 50));
+	light->SetPosition(Vector3(500, 2500, -150));
 	//light->SetColour(Vector4(0.98f, 0.45f, 0.99f, 1.0f));	
 	light->SetColour(Vector4(1.0f, 1.0f, 1.0f, 1.0f));
 
@@ -133,7 +133,7 @@ void Renderer::InitMeshReading() {
 	triangle->BindSSBOs();
 
 	SetCurrentShader(meshReader);
-	modelMatrix = Matrix4::Translation(Vector3(0, 0, -10));
+	modelMatrix = Matrix4::Translation(Vector3(0, -2.5f, -10));
 	UpdateShaderMatrices();
 	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraPosition"), 1, (float*)&camera->GetPosition());
 	glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numTriangles"), triangle->GetNumFaces());
@@ -196,7 +196,11 @@ void Renderer::InitBoundingVolumeMulti(GLuint numWorkGroups, GLuint numFacesPerG
 	glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numFacesPerGroup"), numFacesPerGroup);
 	glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "maxIndex"), numVisibleFaces * NUM_PLANE_NORMALS);
 
-	glDispatchComputeGroupSizeARB(1, 1, 1, numWorkGroups, NUM_PLANE_NORMALS, 1);
+	// Sometimes num of work groups multiply with the number of plane normals is greater than the maximum invocations per group..
+	bool isOverMaxInvosPerGroup = (numWorkGroups * NUM_PLANE_NORMALS) > static_cast<GLuint>(maxInvosPerGroup);
+
+	isOverMaxInvosPerGroup ? glDispatchComputeGroupSizeARB(numWorkGroups, 1, 1, numFacesPerGroup, NUM_PLANE_NORMALS, 1) 
+							: glDispatchComputeGroupSizeARB(1, 1, 1, numWorkGroups, NUM_PLANE_NORMALS, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
 	// third stage..

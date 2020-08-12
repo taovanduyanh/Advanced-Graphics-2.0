@@ -141,7 +141,7 @@ uniform vec4 lightColour;
 uniform vec3 lightPos;
 
 float toRadian(float angle);
-bool rayIntersectsVolume(Ray ray, uint index);
+bool rayIntersectsVolume(Ray ray);
 bool rayIntersectsTriangle(inout Ray ray, Triangle triangle);   // the 'inout' keyword allows the ray's values will be modified..
 vec3 pixelMiddlePoint(ivec2 pixelCoords);
 vec4 getFinalColour(ivec2 pixelCoords);
@@ -162,7 +162,7 @@ void main() {
     barrier();
 }
 
-bool rayIntersectsVolume(Ray ray, uint index) {
+bool rayIntersectsVolume(Ray ray) {
     float tNear = -1.0 / 0.0;
     float tFar = 1.0 / 0.0;
 
@@ -271,7 +271,7 @@ vec4 getFinalColour(ivec2 pixelCoords) {
     primaryRay.direction = (inverseViewMatrix * vec4(middlePoint, 1.0)).xyz - primaryRay.origin;
 
     // IT WORKS!!!
-    // We're now using Ks' bounding volume..
+    // We're now using icosphere to check for bounding volume..
     //for (int i = 0; i < numVisibleFaces; ++i) {
         //if (rayIntersectsVolume(primaryRay, i)) {
             //finalColour += vec4(0.0, 0.05, 0.0, 1.0);
@@ -294,7 +294,7 @@ vec4 getFinalColour(ivec2 pixelCoords) {
         //}
     //}
        ///*
-    if (rayIntersectsVolume(primaryRay, 0)) {
+    if (rayIntersectsVolume(primaryRay)) {
         //finalColour += vec4(0.0, 0.05, 0.0, 1.0);
         ///*
         for (int i = 0; i < numVisibleFaces; ++i) {
@@ -306,20 +306,22 @@ vec4 getFinalColour(ivec2 pixelCoords) {
                 shadowRay.origin = primaryRay.origin + primaryRay.direction * primaryRay.t;
                 shadowRay.direction = normalize(lightPos - shadowRay.origin);
                 
-                for (int j = 0; j < facesSSBO.length(); ++j) {
-                    if (j != intersectedID && rayIntersectsTriangle(shadowRay, facesSSBO[j])) {
-                        isInShadow = true;
-                        break;
+                if (rayIntersectsVolume(shadowRay)) {
+                    for (int j = 0; j < facesSSBO.length(); ++j) {
+                        if (j != intersectedID && rayIntersectsTriangle(shadowRay, facesSSBO[j])) {
+                            isInShadow = true;
+                            break;
+                        }   
                     }
                 }
-                //    */       
+                //*/       
 
                 if (useTexture > 0) {
                     vec2 tc0 = texCoordsSSBO[facesSSBO[intersectedID].texIndices[0]];
                     vec2 tc1 = texCoordsSSBO[facesSSBO[intersectedID].texIndices[1]];
                     vec2 tc2 = texCoordsSSBO[facesSSBO[intersectedID].texIndices[2]];
                     vec2 texCoord = primaryRay.barycentricCoord.z * tc0 + primaryRay.barycentricCoord.x * tc1 + primaryRay.barycentricCoord.y * tc2;
-                    //return isInShadow ? texture(diffuse, texCoord) * vec4(0.5, 0.5, 0.5, 1.0) : texture(diffuse, texCoord) * lightColour;
+                    return isInShadow ? texture(diffuse, texCoord) * vec4(0.5, 0.5, 0.5, 1.0) : texture(diffuse, texCoord) * lightColour;
                     return texture(diffuse, texCoord) * lightColour;
                 }
                 else {
