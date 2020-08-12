@@ -2,12 +2,13 @@
 
 Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	triangle = new OBJMesh();
-	dynamic_cast<OBJMesh*>(triangle)->LoadOBJMesh(MESHDIR"Tree1.obj");
+	dynamic_cast<OBJMesh*>(triangle)->LoadOBJMesh(MESHDIR"deer.obj");
+
 	//triangle->SetTexutre(SOIL_load_OGL_texture(TEXTUREDIR"brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
 
 	sceneQuad = Mesh::GenerateQuad();
 	camera = new Camera();
-	//camera->SetPosition(Vector3(-15, 785, 2250)); // first view.. (note: for deer mesh)
+	camera->SetPosition(Vector3(-15, 785, 2250)); // first view.. (note: for deer mesh)
 	//camera->SetPosition(Vector3(2290, 850, 15)); // second view.. (note: for deer mesh)
 	//camera->SetYaw(90); // second view.. (note: for deer mesh)
 
@@ -50,6 +51,14 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	glBindImageTexture(0, image, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
+	sceneQuad->SetTexutre(image);	// set the texture after it is generated..
+
+	// FBO to clear the image..
+	glGenFramebuffers(1, &bufferFBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, bufferFBO);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, image, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
 	// maybe don't need this anymore..
 	glEnable(GL_DEPTH_TEST);
 
@@ -79,7 +88,8 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	rayTracerShader = new Shader(SHADERDIR"RayTracer.glsl");
 	finalShader = new Shader(SHADERDIR"TexturedVertex.glsl", SHADERDIR"TexturedFragment.glsl");
 
-	if (!meshReader->LinkProgram() || !volumeCreatorFirst->LinkProgram() || !volumeCreatorSecond->LinkProgram()
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE || !image 
+		||!meshReader->LinkProgram() || !volumeCreatorFirst->LinkProgram() || !volumeCreatorSecond->LinkProgram()
 		|| !volumeCreatorThird->LinkProgram() || !rayTracerShader->LinkProgram() || !finalShader->LinkProgram()) {
 		return;
 	}
@@ -105,21 +115,43 @@ Renderer::~Renderer(void) {
 	glDeleteTextures(1, &image);
 
 	glDeleteBuffers(2, tempPlaneDsSSBO);
+	glDeleteFramebuffers(1, &bufferFBO);
 }
 
 void Renderer::UpdateScene(float msec) {
 	camera->UpdateCamera(msec);
 	viewMatrix = camera->BuildViewMatrix();
-	//cout << camera->GetPosition() << endl;
 }
 
 void Renderer::RenderScene() {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	InitMeshReading();
-	InitBoundingVolume();
-	InitRayTracing();
+	// Clear the image first..
+	// You don't wanna comment this function..
+	CleanImage();
+
+	// Draw the first/parent mesh first.. 
+	InitOperators(triangle);
+	
+	std::vector<Mesh*> children = dynamic_cast<OBJMesh*>(triangle)->GetChildren();
+	if (!children.empty()) {
+		for (Mesh* child : children) {
+			InitOperators(child);
+		}
+	}
+
 	InitFinalScene();
 	SwapBuffers();
+}
+
+void Renderer::CleanImage() {
+	glBindFramebuffer(GL_FRAMEBUFFER, bufferFBO);
+	glClear(GL_COLOR_BUFFER_BIT);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void Renderer::InitOperators(Mesh* m) {
+	InitMeshReading(m);
+	InitBoundingVolume(m);
+	InitRayTracing(m);
 }
 
 void Renderer::ResetCamera() {
@@ -128,37 +160,35 @@ void Renderer::ResetCamera() {
 	camera->SetYaw(0.0f);
 }
 
-void Renderer::InitMeshReading() {
-	// ALWAYS bind the SSBOs of the meshes first..
-	triangle->BindSSBOs();
-
-	SetCurrentShader(meshReader);
-	modelMatrix = Matrix4::Translation(Vector3(0, -2.5f, -10));
-	UpdateShaderMatrices();
-	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraPosition"), 1, (float*)&camera->GetPosition());
-	glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numTriangles"), triangle->GetNumFaces());
-
+void Renderer::InitMeshReading(Mesh* m) {
 	// Dividing the work here..
 	GLuint numWorkGroups = 1;
-	GLuint numInvocations = triangle->GetNumFaces();
+	GLuint numInvocations = m->GetNumFaces();
 
 	if (numInvocations > static_cast<GLuint>(maxInvosPerGroup)) {
 		numWorkGroups = static_cast<GLuint>(std::round(static_cast<double>(numInvocations / maxInvosPerGroup))) + 1;
 		numInvocations = maxInvosPerGroup;
 	}
 
+	SetCurrentShader(meshReader);
+
+	// ALWAYS bind the SSBOs of the meshes before doing stuffs..
+	m->BindSSBOs();
+
+	modelMatrix = Matrix4::Translation(Vector3(0, -2.5f, -15));
+	UpdateShaderMatrices();
+	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraPosition"), 1, (float*)&camera->GetPosition());
+	glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numTriangles"), m->GetNumFaces());
+
 	glDispatchComputeGroupSizeARB(numWorkGroups, 1, 1, numInvocations, 1, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-	triangle->UpdateCollectedID();
+	m->UpdateCollectedID();
 }
 
-void Renderer::InitBoundingVolume() {
-	// ALWAYS bind the SSBOs of the meshes first..
-	triangle->BindSSBOs();
-
+void Renderer::InitBoundingVolume(Mesh* m) {
 	GLuint numWorkGroups = 1;
 	GLuint numFacesPerGroup = 1;
-	GLuint numVisibleFaces = triangle->GetNumVisibleFaces();
+	GLuint numVisibleFaces = m->GetNumVisibleFaces();
 
 	if ((numVisibleFaces * NUM_PLANE_NORMALS) <= static_cast<GLuint>(maxInvosPerGroup)) {
 		numFacesPerGroup = numVisibleFaces;
@@ -168,6 +198,9 @@ void Renderer::InitBoundingVolume() {
 		double invNumInvoX = 1.0 / numFacesPerGroup;	// maybe cast it?
 		numWorkGroups = static_cast<GLuint>(std::round(static_cast<double>(numVisibleFaces * invNumInvoX))) + 1;
 	}
+
+	// ALWAYS bind the SSBOs of the meshes before doing stuffs..
+	m->BindSSBOs();
 
 	InitBoundingVolumeMulti(numWorkGroups, numFacesPerGroup, numVisibleFaces);
 }
@@ -179,7 +212,7 @@ void Renderer::InitBoundingVolumeMulti(GLuint numWorkGroups, GLuint numFacesPerG
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, tempPlaneDsSSBO[0]);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, numVisibleFaces * NUM_PLANE_NORMALS * 2 * sizeof(float), NULL, GL_STATIC_DRAW);
-	glBindBuffer(GL_SHADER_STORAGE_BARRIER_BIT, 0);
+	//glBindBuffer(GL_SHADER_STORAGE_BARRIER_BIT, 0);
 
 	glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numVisibleFaces"), numVisibleFaces);
 
@@ -212,24 +245,20 @@ void Renderer::InitBoundingVolumeMulti(GLuint numWorkGroups, GLuint numFacesPerG
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
-void Renderer::InitRayTracing() {
-	// ALWAYS bind the SSBOs of the meshes first..
-	triangle->BindSSBOs();
-
+void Renderer::InitRayTracing(Mesh* m) {
 	// Compute shader for ray tracing..
 	SetCurrentShader(rayTracerShader);
 
-	// assume that we are using texture0
-	glBindTexture(GL_TEXTURE_2D, image);
-	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "image"), 0);
+	// ALWAYS bind the SSBOs of the meshes first..
+	m->BindSSBOs();
 
 	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, triangle->GetTexture());
+	glBindTexture(GL_TEXTURE_2D, m->GetTexture());
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "diffuse"), 1);
-	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "useTexture"), triangle->GetTexture());
+	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "useTexture"), m->GetTexture());
 	glUniform2f(glGetUniformLocation(currentShader->GetProgram(), "pixelSize"), 1.0f / width, 1.0f / height);
 	glUniform1f(glGetUniformLocation(currentShader->GetProgram(), "fov"), fov);
-	glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numVisibleFaces"), triangle->GetNumVisibleFaces());
+	glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numVisibleFaces"), m->GetNumVisibleFaces());
 
 	UpdateShaderMatrices();
 	SetShaderLight(*light);
@@ -244,6 +273,7 @@ void Renderer::InitRayTracing() {
 }
 
 void Renderer::InitFinalScene() {
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	SetCurrentShader(finalShader);
 	// Render the scene quad here..
 	modelMatrix.ToIdentity();
@@ -251,7 +281,6 @@ void Renderer::InitFinalScene() {
 	viewMatrix.ToIdentity();
 	UpdateShaderMatrices();
 
-	sceneQuad->SetTexutre(image);
 	sceneQuad->Draw();
 
 	glUseProgram(0);

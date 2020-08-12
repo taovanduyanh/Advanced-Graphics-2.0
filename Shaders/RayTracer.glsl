@@ -127,8 +127,8 @@ vec3(0.574583, 0.330396, 0.748794),
 vec3(0.574584, 0.330397, -0.748793) 
 );
 
-layout(rgba32f) uniform image2D image;
-uniform sampler2D diffuse;
+layout(rgba32f) uniform image2D image;  // this should be in binding 0..
+uniform sampler2D diffuse;  // this should be in binding 1
 uniform int useTexture;
 uniform mat4 modelMatrix;
 uniform mat4 viewMatrix;
@@ -261,7 +261,20 @@ float toRadian(float angle) {
 
 vec4 getFinalColour(ivec2 pixelCoords) {
     bool isInShadow = false;
-    vec4 finalColour = vec4(0.2, 0.2, 0.2, 1.0);
+
+    // further testing..
+    vec4 finalColour;
+
+    vec4 imageColour = imageLoad(image, pixelCoords);
+    // If retrieved image colour at the pixel coords is dark (all values is 0) then it means the image is not yet drawn..
+    // (this is for OBJ meshes that have submeshes..)
+    if (imageColour == vec4(0)) { 
+        finalColour = vec4(0.2, 0.2, 0.2, 1.0);
+    }
+    else {
+        finalColour = imageColour;
+    }
+    
     // the middle point of the pixel should be in world space now by multiplying with the inverse view matrix..
     // need to find the middle point of the pixel in world space..
     mat4 inverseViewMatrix = inverse(viewMatrix);
@@ -321,7 +334,7 @@ vec4 getFinalColour(ivec2 pixelCoords) {
                     vec2 tc1 = texCoordsSSBO[facesSSBO[intersectedID].texIndices[1]];
                     vec2 tc2 = texCoordsSSBO[facesSSBO[intersectedID].texIndices[2]];
                     vec2 texCoord = primaryRay.barycentricCoord.z * tc0 + primaryRay.barycentricCoord.x * tc1 + primaryRay.barycentricCoord.y * tc2;
-                    return isInShadow ? texture(diffuse, texCoord) * vec4(0.5, 0.5, 0.5, 1.0) : texture(diffuse, texCoord) * lightColour;
+                    //return isInShadow ? texture(diffuse, texCoord) * vec4(0.5, 0.5, 0.5, 1.0) : texture(diffuse, texCoord) * lightColour;
                     return texture(diffuse, texCoord) * lightColour;
                 }
                 else {

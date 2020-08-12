@@ -31,6 +31,8 @@ public:
 		children.push_back(m);
 	}
 
+	std::vector<Mesh*> GetChildren() const { return children; }
+
 	virtual ~ChildMeshInterface() {
 		for(unsigned int i = 0; i < children.size(); ++i) {
 			delete children.at(i);
@@ -39,7 +41,7 @@ public:
 
 protected:
 	//Some Meshes have children...
-	std::vector<Mesh*>children;
+	std::vector<Mesh*> children;
 	ChildMeshInterface(void){};
 };
 #endif

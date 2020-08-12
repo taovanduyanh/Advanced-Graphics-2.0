@@ -1,2 +1,7 @@
-﻿  Mesh.cpp
+﻿  MD5Anim.cpp
+  MD5FileData.cpp
+  MD5Mesh.cpp
+  MD5Node.cpp
+  OBJMesh.cpp
+  Generating Code...
   nclgl.vcxproj -> E:\Misc\Diss 2020\Graphics For Games\Debug\nclgl.lib

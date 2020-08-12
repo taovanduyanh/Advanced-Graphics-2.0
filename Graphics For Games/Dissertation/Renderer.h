@@ -18,15 +18,19 @@ public:
 	void ResetCamera();
 
 protected:
-	void InitMeshReading();
+	void CleanImage();
 
-	void InitBoundingVolume();
+	void InitOperators(Mesh* m);	// I'm not so proud of my naming convention..
+
+	void InitMeshReading(Mesh* m);
+
+	void InitBoundingVolume(Mesh* m);
 	void InitBoundingVolumeMulti(GLuint numWorkGroups, GLuint numFacesPerGroup, GLuint numVisibleFaces);
 
-	void InitRayTracing();
+	void InitRayTracing(Mesh* m);
 	void InitFinalScene();
 
-	Mesh* triangle;
+	Mesh* triangle;	// not really a triangle, but i'm too lazy to change the name..
 	Mesh* sceneQuad;
 	Camera* camera;
 
@@ -35,8 +39,7 @@ protected:
 	GLint maxWorkGroupSizes[3];
 	GLint maxInvosPerGroup;
 
-	// testing..
-	float fov;
+	// Shaders..
 	Shader* meshReader;	
 	Shader* volumeCreatorFirst;
 	Shader* volumeCreatorSecond;
@@ -47,10 +50,20 @@ protected:
 	// further testing..
 	Light* light;
 
+	// Temp d ssbos
+	// remove this later?
 	GLuint tempPlaneDsSSBO[2];
 
+	// testing 
+	// FBO to clear the image
+	GLuint bufferFBO;
+
+	// For ray tracer
+	// These will be used to dispatch the ray tracer..
 	GLuint rayTracerNumInvo;
 	GLuint rayTracerNumGroups[2]; // for both group x and y
 
 	GLuint image;
+
+	float fov;	// important for ray tracing.. (this is needed to calculate the ray's position in world space)
 };
