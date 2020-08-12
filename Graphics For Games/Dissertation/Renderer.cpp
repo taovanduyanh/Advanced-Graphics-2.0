@@ -162,13 +162,6 @@ void Renderer::InitBoundingVolume() {
 	}
 
 	InitBoundingVolumeMulti(numWorkGroups, numFacesPerGroup, numVisibleFaces);
-
-	//SetCurrentShader(testing);
-	//UpdateShaderMatrices();
-
-	//glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numVisibleFaces"), numVisibleFaces);
-	//glDispatchComputeGroupSizeARB(numWorkGroups, 1, 1, numFacesPerGroup, NUM_PLANE_NORMALS, 1);
-	//glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
 void Renderer::InitBoundingVolumeMulti(GLuint numWorkGroups, GLuint numFacesPerGroup, GLuint numVisibleFaces) {

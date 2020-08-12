@@ -59,7 +59,7 @@ const vec3 kSNormals[7] = vec3[7]
     vec3(1 / sqrt(3), -1 / sqrt(3), 1 / sqrt(3))
 );
 
-const vec3 nearHalfIcoNormals[43] = vec3[43]
+const vec3 icoNormals[43] = vec3[43]
 (
 vec3(1, 0, 0),
 vec3(0, 1, 0),
@@ -124,8 +124,7 @@ vec3(-0.802607, 0.125649, 0.583125),
 vec3(0.802606, -0.125648, 0.583126),
 
 vec3(0.574583, 0.330396, 0.748794),
-vec3(0.574584, 0.330397, -0.748793)
-           
+vec3(0.574584, 0.330397, -0.748793) 
 );
 
 layout(rgba32f) uniform image2D image;
@@ -167,9 +166,9 @@ bool rayIntersectsVolume(Ray ray, uint index) {
     float tNear = -1.0 / 0.0;
     float tFar = 1.0 / 0.0;
 
-    for (uint i = 0; i < nearHalfIcoNormals.length(); ++i) {
-        float planeNormalsDotOrigin = dot(nearHalfIcoNormals[i], ray.origin);
-        float planeNormalsDotDirection = dot(nearHalfIcoNormals[i], ray.direction);
+    for (uint i = 0; i < icoNormals.length(); ++i) {
+        float planeNormalsDotOrigin = dot(icoNormals[i], ray.origin);
+        float planeNormalsDotDirection = dot(icoNormals[i], ray.direction);
 
         float invDenominator = 1 / planeNormalsDotDirection;
 
@@ -296,8 +295,8 @@ vec4 getFinalColour(ivec2 pixelCoords) {
     //}
        ///*
     if (rayIntersectsVolume(primaryRay, 0)) {
-        finalColour += vec4(0.0, 0.05, 0.0, 1.0);
-     
+        //finalColour += vec4(0.0, 0.05, 0.0, 1.0);
+        ///*
         for (int i = 0; i < numVisibleFaces; ++i) {
             int intersectedID = idSSBO[i];
             if (rayIntersectsTriangle(primaryRay, facesSSBO[intersectedID])) {
@@ -313,7 +312,7 @@ vec4 getFinalColour(ivec2 pixelCoords) {
                         break;
                     }
                 }
-                //*/           
+                //    */       
 
                 if (useTexture > 0) {
                     vec2 tc0 = texCoordsSSBO[facesSSBO[intersectedID].texIndices[0]];

@@ -1,5 +1,4 @@
-﻿  Main.cpp
-  Renderer.cpp
+﻿  Renderer.cpp
 E:\Misc\Diss 2020\Graphics For Games\Dissertation\Renderer.cpp(79,31): warning C4244: '=': conversion from 'double' to 'GLuint', possible loss of data
 E:\Misc\Diss 2020\Graphics For Games\Dissertation\Renderer.cpp(80,84): warning C4244: '=': conversion from 'double' to 'GLuint', possible loss of data
 E:\Misc\Diss 2020\Graphics For Games\Dissertation\Renderer.cpp(81,85): warning C4244: '=': conversion from 'double' to 'GLuint', possible loss of data
@@ -8,5 +7,4 @@ E:\Misc\Diss 2020\Graphics For Games\Dissertation\Renderer.cpp(141,86): warning 
 E:\Misc\Diss 2020\Graphics For Games\Dissertation\Renderer.cpp(155,44): warning C4018: '<=': signed/unsigned mismatch
 E:\Misc\Diss 2020\Graphics For Games\Dissertation\Renderer.cpp(159,32): warning C4244: '=': conversion from 'double' to 'GLuint', possible loss of data
 E:\Misc\Diss 2020\Graphics For Games\Dissertation\Renderer.cpp(161,82): warning C4244: '=': conversion from 'double' to 'GLuint', possible loss of data
-  Generating Code...
   Dissertation.vcxproj -> E:\Misc\Diss 2020\Graphics For Games\Debug\Dissertation.exe

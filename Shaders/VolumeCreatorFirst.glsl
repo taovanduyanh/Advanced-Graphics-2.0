@@ -45,7 +45,7 @@ const vec3 kSNormals[7] = vec3[7]
     vec3(1 / sqrt(3), -1 / sqrt(3), 1 / sqrt(3))
 );
 
-const vec3 nearHalfIcoNormals[43] = vec3[43]
+const vec3 icoNormals[43] = vec3[43]
 (
 vec3(1, 0, 0),
 vec3(0, 1, 0),
@@ -123,8 +123,8 @@ void main() {
         return;
     }
 
-    tempFirst[gl_GlobalInvocationID.x * nearHalfIcoNormals.length() + gl_GlobalInvocationID.y][0] = 1.0 / 0.0;
-    tempFirst[gl_GlobalInvocationID.x * nearHalfIcoNormals.length() + gl_GlobalInvocationID.y][1] = -1.0 / 0.0;
+    tempFirst[gl_GlobalInvocationID.x * icoNormals.length() + gl_GlobalInvocationID.y][0] = 1.0 / 0.0;
+    tempFirst[gl_GlobalInvocationID.x * icoNormals.length() + gl_GlobalInvocationID.y][1] = -1.0 / 0.0;
 
     memoryBarrierBuffer();
     barrier();
@@ -132,13 +132,13 @@ void main() {
     int id = idSSBO[gl_GlobalInvocationID.x];
     for (int i = 0; i < 3; ++i) {
         vec3 currVertex = (modelMatrix * posSSBO[facesSSBO[id].vertIndices[i]]).xyz;
-        float d = dot(currVertex, nearHalfIcoNormals[gl_GlobalInvocationID.y]);
+        float d = dot(currVertex, icoNormals[gl_GlobalInvocationID.y]);
 
-        tempFirst[gl_GlobalInvocationID.x * nearHalfIcoNormals.length() + gl_GlobalInvocationID.y][0] 
-        = min(d, tempFirst[gl_GlobalInvocationID.x * nearHalfIcoNormals.length() + gl_GlobalInvocationID.y][0]);
+        tempFirst[gl_GlobalInvocationID.x * icoNormals.length() + gl_GlobalInvocationID.y][0] 
+        = min(d, tempFirst[gl_GlobalInvocationID.x * icoNormals.length() + gl_GlobalInvocationID.y][0]);
 
-        tempFirst[gl_GlobalInvocationID.x * nearHalfIcoNormals.length() + gl_GlobalInvocationID.y][1] 
-        = max(d, tempFirst[gl_GlobalInvocationID.x * nearHalfIcoNormals.length() + gl_GlobalInvocationID.y][1]);
+        tempFirst[gl_GlobalInvocationID.x * icoNormals.length() + gl_GlobalInvocationID.y][1] 
+        = max(d, tempFirst[gl_GlobalInvocationID.x * icoNormals.length() + gl_GlobalInvocationID.y][1]);
     }
 
     memoryBarrierBuffer();

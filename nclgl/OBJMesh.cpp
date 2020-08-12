@@ -82,7 +82,10 @@ bool	OBJMesh::LoadOBJMesh(std::string filename)	{
 			Vector2 texCoord;
 			f >> texCoord.x; f >> texCoord.y;
 			/*
-			TODO! Some OBJ files might have 3D tex coords...
+			Some OBJ files might have 3D tex coords...
+			We will using OBJ files that have 2D tex coords only
+			=> we will ignore the third component of the texture coords in OBJ files..
+			(some of the meshes we are using have the 3rd texture coords to be 0, so it is safe to ignore it)
 			*/
 			inputTexCoords.push_back(texCoord);
 		}
@@ -106,6 +109,9 @@ bool	OBJMesh::LoadOBJMesh(std::string filename)	{
 
 				you can be some OBJ files will have "/ /" instead of "//" though... :(
 				=> don't have to check the "//" like the original..
+				instead we will check for the input normals and textures
+				if input normals is empty, then it's confirmed that the data is texture coords
+				otherwise, it is normals..
 			*/
 
 			/*
@@ -148,7 +154,7 @@ bool	OBJMesh::LoadOBJMesh(std::string filename)	{
 				else if(faceIndices.size() == 6) {	//This face has vertex, and one other index...
 					for(int i = 0; i < 6; i += 2) {
 						currentMesh->vertIndices.push_back(faceIndices.at(i));
-						currentMesh->normIndices.push_back(faceIndices.at(i+1));
+						inputNormals.empty() ? currentMesh->texIndices.push_back(faceIndices.at(i + 1)) : currentMesh->normIndices.push_back(faceIndices.at(i + 1));
 					}
 				}
 			}
@@ -158,10 +164,7 @@ bool	OBJMesh::LoadOBJMesh(std::string filename)	{
 			}
 		}
 		else{
-			std::string temp;
-			f >> temp;
-			temp = currentLine + temp;
-			std::cout << "OBJMesh::LoadOBJMesh Unknown file data: " << temp << std::endl;
+			std::cout << "OBJMesh::LoadOBJMesh Unknown file data: " << currentLine << std::endl;
 			f.ignore((std::numeric_limits<streamsize>::max)(), '\n');
 		}
 	}
@@ -199,6 +202,24 @@ bool	OBJMesh::LoadOBJMesh(std::string filename)	{
 		m->numNormals = inputNormals.size();
 		m->numFaces = sm->vertIndices.size() / 3;
 
+		// faces/polygons..
+		m->facesList = new std::vector<Triangle>(m->numFaces);
+		for (unsigned int j = 0; j < m->numFaces; ++j) {
+			unsigned int firstIndex = j * 3;
+			m->facesList->at(j) = Triangle();
+
+			for (unsigned int k = 0; k < 3; ++k) {
+				m->facesList->at(j).verticesIndices[k] = sm->vertIndices[firstIndex + k] - 1;
+				if (!sm->texIndices.empty()) {
+					m->facesList->at(j).texCoordsIndices[k] = sm->texIndices[firstIndex + k] - 1;
+				}
+				if (!sm->normIndices.empty()) {
+					m->facesList->at(j).normalsIndices[k] = sm->normIndices[firstIndex + k] - 1;
+				}
+			}
+		}
+
+		// vertices..
 		m->vertices = new std::vector<Vector3>(m->numVertices);
 		for (unsigned int j = 0; j < m->numVertices; ++j) {
 			m->vertices->at(j) = inputVertices[j];
@@ -223,25 +244,8 @@ bool	OBJMesh::LoadOBJMesh(std::string filename)	{
 			m->GenerateNormals();
 		}
 
-		// faces/polygons..
-		m->facesList = new std::vector<Triangle>(m->numFaces);
-		for (unsigned int j = 0; j < m->numFaces; ++j) {
-			unsigned int firstIndex = j * 3;
-			m->facesList->at(j) = Triangle();
-
-			for (unsigned int k = 0; k < 3; ++k) {
-				m->facesList->at(j).verticesIndices[k] = sm->vertIndices[firstIndex + k] - 1;
-				if (!sm->texIndices.empty()) {
-					m->facesList->at(j).texCoordsIndices[k] = sm->texIndices[firstIndex + k] - 1;
-				}
-				if (!sm->normIndices.empty()) {
-					m->facesList->at(j).normalsIndices[k] = sm->normIndices[firstIndex + k] - 1;
-				}
-			}
-		}
-
 		// tangents, do something for it later on..
-		//m->GenerateTangents();
+		m->GenerateTangents();
 		m->GenerateSSBOs();
 #else
 		m->numVertices = sm->vertIndices.size();

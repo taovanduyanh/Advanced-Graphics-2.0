@@ -390,6 +390,25 @@ void Mesh::GenerateNormals() {
 			normals->at(c) += normal;
 		}
 	}
+#ifdef USE_RAY_TRACING
+	else if (facesList) {
+		for (GLuint i = 0; i < numFaces; ++i) {
+			GLuint a = facesList->at(i).verticesIndices[0];
+			GLuint b = facesList->at(i).verticesIndices[1];
+			GLuint c = facesList->at(i).verticesIndices[2];
+
+			Vector3 v0 = vertices->at(a);
+			Vector3 v1 = vertices->at(b);
+			Vector3 v2 = vertices->at(c);
+
+			Vector3 normal = Vector3::Cross(v1 - v0, v2 - v0);
+
+			normals->at(a) += normal;
+			normals->at(b) += normal;
+			normals->at(c) += normal;
+		}
+	}
+#else
 	else {
 		for (GLuint i = 0; i < numVertices; i += 3) {
 			Vector3& a = vertices->at(i);
@@ -403,7 +422,7 @@ void Mesh::GenerateNormals() {
 			normals->at(i + 2) = normal;
 		}
 	}
-
+#endif // USE_RAY_TRACING
 	for (GLuint i = 0; i < numVertices; ++i) {
 		normals->at(i).Normalise();
 	}
@@ -435,6 +454,27 @@ void Mesh::GenerateTangents() {
 			tangents->at(c) += tangent;
 		}
 	}
+#ifdef USE_RAY_TRACING
+	else if (facesList) {
+		for (GLuint i = 0; i < numFaces; ++i) {
+			// Vertices indices..
+			GLuint a = facesList->at(i).verticesIndices[0];
+			GLuint b = facesList->at(i).verticesIndices[1];
+			GLuint c = facesList->at(i).verticesIndices[2];
+
+			// Texture coords indices..
+			GLuint ta = facesList->at(i).texCoordsIndices[0];
+			GLuint tb = facesList->at(i).texCoordsIndices[1];
+			GLuint tc = facesList->at(i).texCoordsIndices[2];
+
+			Vector3 tangent = GenerateTangent(vertices->at(a), vertices->at(b), vertices->at(c), textureCoords->at(ta), textureCoords->at(tb), textureCoords->at(tc));
+
+			tangents->at(a) += tangent;
+			tangents->at(b) += tangent;
+			tangents->at(c) += tangent;
+		}
+	}
+#else
 	else {
 		for (GLuint i = 0; i < numVertices; i+=3) {
 			Vector3 tangent = GenerateTangent(vertices->at(i), vertices->at(i + 1), vertices->at(i + 2), textureCoords->at(i), textureCoords->at(i + 1), textureCoords->at(i + 2));
@@ -444,7 +484,7 @@ void Mesh::GenerateTangents() {
 			tangents->at(i + 2) += tangent;
 		}
 	}
-
+#endif // USE_RAY_TRACING
 	for (GLuint i = 0; i < numVertices; ++i) {
 		tangents->at(i).Normalise();
 	}
