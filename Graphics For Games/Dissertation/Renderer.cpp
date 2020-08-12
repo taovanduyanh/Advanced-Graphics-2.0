@@ -2,30 +2,14 @@
 
 Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	triangle = new OBJMesh();
-	dynamic_cast<OBJMesh*>(triangle)->LoadOBJMesh(MESHDIR"deer.obj");
+	dynamic_cast<OBJMesh*>(triangle)->LoadOBJMesh(MESHDIR"sphere.obj");
 	//triangle->SetTexutre(SOIL_load_OGL_texture(TEXTUREDIR"brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
 
 	sceneQuad = Mesh::GenerateQuad();
 	camera = new Camera();
-	camera->SetPosition(Vector3(-15, 785, 2250)); // first view.. (note: for deer mesh)
+	//camera->SetPosition(Vector3(-15, 785, 2250)); // first view.. (note: for deer mesh)
 	//camera->SetPosition(Vector3(2290, 850, 15)); // second view.. (note: for deer mesh)
 	//camera->SetYaw(90); // second view.. (note: for deer mesh)
-
-	// shaders..
-	meshReader = new Shader(SHADERDIR"MeshReader.glsl");
-	volumeCreatorFirst = new Shader(SHADERDIR"VolumeCreatorFirst.glsl");
-	volumeCreatorSecond = new Shader(SHADERDIR"VolumeCreatorSecond.glsl");
-	volumeCreatorThird = new Shader(SHADERDIR"VolumeCreatorThird.glsl");
-	rayTracerShader = new Shader(SHADERDIR"RayTracer.glsl");
-	finalShader = new Shader(SHADERDIR"TexturedVertex.glsl", SHADERDIR"TexturedFragment.glsl");
-
-	testing = new Shader(SHADERDIR"VolumeCreatorTesting.glsl");
-
-	if (!meshReader->LinkProgram() || !volumeCreatorFirst->LinkProgram() || !volumeCreatorSecond->LinkProgram() 
-		|| !volumeCreatorThird->LinkProgram() || !rayTracerShader->LinkProgram() || !finalShader->LinkProgram()
-		|| !testing->LinkProgram()) {
-		return;
-	}
 
 	// SSBO to temporarily store the dmin and dmax from the chosen plane normals..
 	glGenBuffers(2, tempPlaneDsSSBO);
@@ -76,9 +60,9 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	// fov here..
 	fov = 45.0f;
 
-	rayTracerNumInvo = std::round(std::sqrt(static_cast<double>(maxInvosPerGroup)));
-	rayTracerNumGroups[0] = std::round(static_cast<double>(width) / rayTracerNumInvo) + 1;
-	rayTracerNumGroups[1] = std::round(static_cast<double>(height) / rayTracerNumInvo) + 1;
+	rayTracerNumInvo = static_cast<GLuint>(std::round(std::sqrt(static_cast<double>(maxInvosPerGroup))));
+	rayTracerNumGroups[0] = static_cast<GLuint>(std::round(static_cast<double>(width) / rayTracerNumInvo)) + 1;
+	rayTracerNumGroups[1] = static_cast<GLuint>(std::round(static_cast<double>(height) / rayTracerNumInvo)) + 1;
 
 	// further testing..
 	// lighting..
@@ -86,6 +70,19 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	light->SetPosition(Vector3(0, 1000, 50));
 	//light->SetColour(Vector4(0.98f, 0.45f, 0.99f, 1.0f));	
 	light->SetColour(Vector4(1.0f, 1.0f, 1.0f, 1.0f));
+
+	// shaders..
+	meshReader = new Shader(SHADERDIR"MeshReader.glsl");
+	volumeCreatorFirst = new Shader(SHADERDIR"VolumeCreatorFirst.glsl");
+	volumeCreatorSecond = new Shader(SHADERDIR"VolumeCreatorSecond.glsl");
+	volumeCreatorThird = new Shader(SHADERDIR"VolumeCreatorThird.glsl");
+	rayTracerShader = new Shader(SHADERDIR"RayTracer.glsl");
+	finalShader = new Shader(SHADERDIR"TexturedVertex.glsl", SHADERDIR"TexturedFragment.glsl");
+
+	if (!meshReader->LinkProgram() || !volumeCreatorFirst->LinkProgram() || !volumeCreatorSecond->LinkProgram()
+		|| !volumeCreatorThird->LinkProgram() || !rayTracerShader->LinkProgram() || !finalShader->LinkProgram()) {
+		return;
+	}
 
 	init = true;
 }
@@ -101,10 +98,6 @@ Renderer::~Renderer(void) {
 	delete volumeCreatorThird;
 	delete rayTracerShader;
 	delete finalShader;
-
-	// further testing 6..
-	delete testing;
-
 	currentShader = NULL;
 
 	delete light;
@@ -120,6 +113,15 @@ void Renderer::UpdateScene(float msec) {
 	//cout << camera->GetPosition() << endl;
 }
 
+void Renderer::RenderScene() {
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	InitMeshReading();
+	InitBoundingVolume();
+	InitRayTracing();
+	InitFinalScene();
+	SwapBuffers();
+}
+
 void Renderer::ResetCamera() {
 	camera->SetPosition(Vector3(0.0f, 0.0f, 0.0f));
 	camera->SetPitch(0.0f);
@@ -127,6 +129,9 @@ void Renderer::ResetCamera() {
 }
 
 void Renderer::InitMeshReading() {
+	// ALWAYS bind the SSBOs of the meshes first..
+	triangle->BindSSBOs();
+
 	SetCurrentShader(meshReader);
 	modelMatrix = Matrix4::Translation(Vector3(0, 0, -10));
 	UpdateShaderMatrices();
@@ -137,8 +142,8 @@ void Renderer::InitMeshReading() {
 	GLuint numWorkGroups = 1;
 	GLuint numInvocations = triangle->GetNumFaces();
 
-	if (numInvocations > maxInvosPerGroup) {
-		numWorkGroups = std::round(static_cast<double>(numInvocations / maxInvosPerGroup)) + 1;
+	if (numInvocations > static_cast<GLuint>(maxInvosPerGroup)) {
+		numWorkGroups = static_cast<GLuint>(std::round(static_cast<double>(numInvocations / maxInvosPerGroup))) + 1;
 		numInvocations = maxInvosPerGroup;
 	}
 
@@ -148,17 +153,20 @@ void Renderer::InitMeshReading() {
 }
 
 void Renderer::InitBoundingVolume() {
+	// ALWAYS bind the SSBOs of the meshes first..
+	triangle->BindSSBOs();
+
 	GLuint numWorkGroups = 1;
 	GLuint numFacesPerGroup = 1;
 	GLuint numVisibleFaces = triangle->GetNumVisibleFaces();
 
-	if ((numVisibleFaces * NUM_PLANE_NORMALS) <= maxInvosPerGroup) {
+	if ((numVisibleFaces * NUM_PLANE_NORMALS) <= static_cast<GLuint>(maxInvosPerGroup)) {
 		numFacesPerGroup = numVisibleFaces;
 	}
 	else {
-		numFacesPerGroup = std::round(maxInvosPerGroup / NUM_PLANE_NORMALS);
+		numFacesPerGroup = static_cast<GLuint>(std::round(maxInvosPerGroup / NUM_PLANE_NORMALS));
 		double invNumInvoX = 1.0 / numFacesPerGroup;	// maybe cast it?
-		numWorkGroups = std::round(static_cast<double>(numVisibleFaces * invNumInvoX)) + 1;
+		numWorkGroups = static_cast<GLuint>(std::round(static_cast<double>(numVisibleFaces * invNumInvoX))) + 1;
 	}
 
 	InitBoundingVolumeMulti(numWorkGroups, numFacesPerGroup, numVisibleFaces);
@@ -201,6 +209,9 @@ void Renderer::InitBoundingVolumeMulti(GLuint numWorkGroups, GLuint numFacesPerG
 }
 
 void Renderer::InitRayTracing() {
+	// ALWAYS bind the SSBOs of the meshes first..
+	triangle->BindSSBOs();
+
 	// Compute shader for ray tracing..
 	SetCurrentShader(rayTracerShader);
 
@@ -223,7 +234,7 @@ void Renderer::InitRayTracing() {
 	//glDispatchComputeGroupSizeARB(width, height, 1, numVisibleFaces, 1, 1);
 	//glDispatchComputeGroupSizeARB(width, height, 1, 1, 1, 1);
 	glDispatchComputeGroupSizeARB(rayTracerNumGroups[0], rayTracerNumGroups[1], 1, rayTracerNumInvo, rayTracerNumInvo, 1);
-	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);	// makes sure the ssbo/image is written before
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);	// makes sure the image is written before
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
@@ -240,13 +251,4 @@ void Renderer::InitFinalScene() {
 	sceneQuad->Draw();
 
 	glUseProgram(0);
-}
-
-void Renderer::RenderScene() {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	InitMeshReading();
-	InitBoundingVolume();
-	InitRayTracing();
-	InitFinalScene();
-	SwapBuffers();
 }

@@ -4,6 +4,15 @@ Mesh::Mesh(void) {
 #ifdef USE_RAY_TRACING
 	facesList = NULL;
 	numFaces = 0;
+
+	facesInfoSSBO = 0;
+	planeDsSSBO = 0;
+	
+	for (int i = 0; i < MAX; ++i) {
+		verticesInfoSSBO[i] = 0;
+	}
+
+	visibleFacesIDSSBO = 0;
 #endif
 
 	for (int i = 0; i < MAX_BUFFER; ++i) {
@@ -193,7 +202,7 @@ Mesh* Mesh::GenerateTriangleRayTracing() {
 	m->facesList->at(0) = Triangle();
 	// this allows the triangle's normal to be correctly calculated due to the whole negative z thingy
 	// normal way can be used as well, but then it would requires to flip the camera direction calculation..
-	for (int i = 0; i < m->numVertices; ++i) {
+	for (GLuint i = 0; i < m->numVertices; ++i) {
 		m->normals->at(i) = Vector3(0.0f, 0.0f, -1.0f);
 		m->facesList->at(0).verticesIndices[i] = 2 - i;
 		m->facesList->at(0).texCoordsIndices[i] = 2 - i;
@@ -236,7 +245,7 @@ Mesh* Mesh::GenerateQuadRayTracing() {
 	// Faces..
 	m->numFaces = 2;
 	m->facesList = new std::vector<Triangle>(m->numFaces);
-	for (int i = 0; i < m->numFaces; ++i) {
+	for (GLuint i = 0; i < m->numFaces; ++i) {
 		m->facesList->at(i) = Triangle();
 	}
 
@@ -269,7 +278,7 @@ void Mesh::GenerateVerticesSSBOs() {
 	glGenBuffers(1, &verticesInfoSSBO[POSITION]);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[POSITION]);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(Vector4), temp.data(), GL_STATIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, POSITION, verticesInfoSSBO[POSITION]);
+	//glBindBufferBase(GL_SHADER_STORAGE_BUFFER, POSITION, verticesInfoSSBO[POSITION]);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	temp.clear();
 
@@ -278,7 +287,7 @@ void Mesh::GenerateVerticesSSBOs() {
 		glGenBuffers(1, &verticesInfoSSBO[COLOUR]);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[COLOUR]);
 		glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(Vector4), colours->data(), GL_STATIC_DRAW);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, COLOUR, verticesInfoSSBO[COLOUR]);
+		//glBindBufferBase(GL_SHADER_STORAGE_BUFFER, COLOUR, verticesInfoSSBO[COLOUR]);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	}
 
@@ -287,18 +296,18 @@ void Mesh::GenerateVerticesSSBOs() {
 		glGenBuffers(1, &verticesInfoSSBO[TEX_COORD]);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[TEX_COORD]);
 		glBufferData(GL_SHADER_STORAGE_BUFFER, numTexCoords * sizeof(Vector2), textureCoords->data(), GL_STATIC_DRAW);	// change this later..
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, TEX_COORD, verticesInfoSSBO[TEX_COORD]);
+		//glBindBufferBase(GL_SHADER_STORAGE_BUFFER, TEX_COORD, verticesInfoSSBO[TEX_COORD]);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	}
 
 	// Normals
-	for (int i = 0; i < numNormals; ++i) {
+	for (GLuint i = 0; i < numNormals; ++i) {
 		temp.push_back(Vector4(normals->at(i).x, normals->at(i).y, normals->at(i).z, 1.0f));
 	}
 	glGenBuffers(1, &verticesInfoSSBO[NORMAL]);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[NORMAL]);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, numNormals * sizeof(Vector4), temp.data(), GL_STATIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NORMAL, verticesInfoSSBO[NORMAL]);
+	//glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NORMAL, verticesInfoSSBO[NORMAL]);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	temp.clear();
 }
@@ -308,14 +317,14 @@ void Mesh::GenerateFacesSSBOs() {
 	glGenBuffers(1, &facesInfoSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, facesInfoSSBO);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, numFaces * sizeof(Triangle), facesList->data(), GL_STATIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX + 1, facesInfoSSBO);
+	//glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX + 1, facesInfoSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	// Face ID 
 	glGenBuffers(1, &visibleFacesIDSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, visibleFacesIDSSBO);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, numFaces * sizeof(GLint), NULL, GL_DYNAMIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX, visibleFacesIDSSBO);
+	//glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX, visibleFacesIDSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	// Planes 
@@ -323,7 +332,7 @@ void Mesh::GenerateFacesSSBOs() {
 	glGenBuffers(1, &planeDsSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, planeDsSSBO);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, numDs * sizeof(float), NULL, GL_DYNAMIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX + 2, planeDsSSBO);
+	//glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX + 2, planeDsSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
@@ -337,7 +346,7 @@ void Mesh::UpdateCollectedID() {
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, visibleFacesIDSSBO);
 	GLint* ptr = (GLint*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
 
-	for (int i = 0; i < numFaces; ++i) {
+	for (GLuint i = 0; i < numFaces; ++i) {
 		if (ptr[i] != -1) {
 			collectedID.push_back(ptr[i]);
 		}
@@ -353,6 +362,22 @@ void Mesh::UpdateCollectedID() {
 	//glBindBuffer(GL_SHADER_STORAGE_BUFFER, planeDsSSBO);
 	//glBufferData(GL_SHADER_STORAGE_BUFFER, numVisibleFaces * 19 * 2 * sizeof(float), NULL, GL_DYNAMIC_DRAW);	// 3 for no. normals, 2 for min and max..
 	//glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+}
+
+// These bindings could be divided into individual ones
+// But perhaps this is fine..
+void Mesh::BindSSBOs() {
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, POSITION, verticesInfoSSBO[POSITION]);
+	if (colours) {
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, COLOUR, verticesInfoSSBO[COLOUR]);
+	}
+	if (textureCoords) {
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, TEX_COORD, verticesInfoSSBO[TEX_COORD]);
+	}
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NORMAL, verticesInfoSSBO[NORMAL]);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX + 1, facesInfoSSBO);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX, visibleFacesIDSSBO);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX + 2, planeDsSSBO);
 }
 
 void Mesh::PrintDistances() {
@@ -373,7 +398,7 @@ void Mesh::GenerateNormals() {
 		normals = new std::vector<Vector3>(numVertices);
 	}
 
-	for (int i = 0; i < numVertices; ++i) {
+	for (GLuint i = 0; i < numVertices; ++i) {
 		normals->at(i) = Vector3();
 	}
 

@@ -44,11 +44,13 @@ public:
 	static Mesh* GenerateQuadRayTracing();
 
 	// Mainly for compute shaders..
-	GLuint GetNumFaces() const { return numFaces; }
+	GLuint GetNumFaces() const { return numFaces; }	// Get the number of triangles/faces the mesh has.. 
 
-	void UpdateCollectedID();
+	void UpdateCollectedID();	// Update the id list of triangles/faces for visible ones..
 
-	GLuint GetNumVisibleFaces() const { return numVisibleFaces; }
+	GLuint GetNumVisibleFaces() const { return numVisibleFaces; } // Get the number of visible triangles/faces the mesh has after back culling..
+
+	void BindSSBOs();
 
 	// remove this later..
 	void PrintDistances();
