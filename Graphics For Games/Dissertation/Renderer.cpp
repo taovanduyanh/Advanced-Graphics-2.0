@@ -2,11 +2,12 @@
 
 Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	triangle = new OBJMesh();
-	dynamic_cast<OBJMesh*>(triangle)->LoadOBJMesh(MESHDIR"deer.obj");
+	dynamic_cast<OBJMesh*>(triangle)->LoadOBJMesh(MESHDIR"lowpoly-tree.obj");
 
 	//triangle->SetTexutre(SOIL_load_OGL_texture(TEXTUREDIR"brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
 
 	sceneQuad = Mesh::GenerateQuad();
+
 	camera = new Camera();
 	camera->SetPosition(Vector3(-15, 785, 2250)); // first view.. (note: for deer mesh)
 	//camera->SetPosition(Vector3(2290, 850, 15)); // second view.. (note: for deer mesh)
@@ -131,7 +132,7 @@ void Renderer::RenderScene() {
 	// Draw the first/parent mesh first.. 
 	InitOperators(triangle);
 	
-	std::vector<Mesh*> children = dynamic_cast<OBJMesh*>(triangle)->GetChildren();
+	std::vector<Mesh*> children = triangle->GetChildren();
 	if (!children.empty()) {
 		for (Mesh* child : children) {
 			InitOperators(child);

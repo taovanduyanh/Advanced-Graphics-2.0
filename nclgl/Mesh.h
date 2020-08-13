@@ -50,7 +50,10 @@ public:
 
 	GLuint GetNumVisibleFaces() const { return numVisibleFaces; } // Get the number of visible triangles/faces the mesh has after back culling..
 
-	void BindSSBOs();
+	void BindSSBOs();	// Bind the SSBOs when initializing data and stuffs..
+
+	// 'Boogy' virtual function.. ()
+	virtual std::vector<Mesh*> GetChildren() const { return std::vector<Mesh*>(); };
 
 	// remove this later..
 	void PrintDistances();
