@@ -139,7 +139,7 @@ public:
 
 	virtual void Draw();
 
-	virtual std::vector<Mesh*> GetChildren() const { return children; }	// Get the submeshes of OBJ mesh..
+	virtual std::vector<Mesh*> GetChildren() const override { return children; }	// Get the submeshes of OBJ mesh..
 
 protected:
 	void	SetTexturesFromMTL(string &mtlFile, string &mtlType, map <string, MTLInfo>& allMats);
