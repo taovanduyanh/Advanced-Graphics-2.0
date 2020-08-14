@@ -28,7 +28,14 @@ time lighting tutorial, uncomment both MD5_USE_NORMALS and MD5_USE_TANGENTS_BUMP
 #define MD5_USE_NORMALS
 #define MD5_USE_TANGENTS_BUMPMAPS
 
+// For dissertation
+// Comment this if you want to go back to rasterization, but don't do it for the diss obviously..
 #define USE_RAY_TRACING
+
+#ifdef USE_RAY_TRACING
+// the number of planes necessary to create the bounding volume (3 of them are the default plane normals, the other 40 are from the icosphere)
+constexpr auto NUM_PLANE_NORMALS = 43;
+#endif
 
 //It's pi(ish)...
 static const float		PI = 3.14159265358979323846f;	

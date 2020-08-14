@@ -3,6 +3,8 @@
 
 #ifdef USE_RAY_TRACING
 
+
+
 // this is for SSBOs, while the above is for vertex buffers
 enum VertexInfo {
 	POSITION, COLOUR, TEX_COORD, NORMAL, TANGENT, MAX
@@ -98,14 +100,15 @@ protected:
 	void GenerateFacesSSBOs();
 	void GenerateSSBOs();
 
-	GLuint numFaces;
+	GLuint numFaces;	// Num of faces the mesh has.. (triangles in this case)
+	GLuint numVisibleFaces;	// Num of visible faces after back culling the mesh..
 
 	GLuint verticesInfoSSBO[MAX];
 	GLuint facesInfoSSBO;
 	GLuint visibleFacesIDSSBO;
 
-	GLuint planeDsSSBO;
-	GLuint numVisibleFaces;
+	GLuint rootNodeSSBO;	// SSBO that stores scalar values to create bounding volume that covers the whole mesh..
+	GLuint leafNodesSSBO;	// SSBO that stores scalar values to create bounding volume that covers each face of the mesh individually..
 
 	// A triangle/face always has three vertices.. 
 	// Note that some OBJ meshes only have positions 

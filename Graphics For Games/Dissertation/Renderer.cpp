@@ -2,28 +2,23 @@
 
 Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	triangle = new OBJMesh();
-	dynamic_cast<OBJMesh*>(triangle)->LoadOBJMesh(MESHDIR"lowpoly-tree.obj");
+	dynamic_cast<OBJMesh*>(triangle)->LoadOBJMesh(MESHDIR"Tower.obj");
 
 	//triangle->SetTexutre(SOIL_load_OGL_texture(TEXTUREDIR"brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
 
 	sceneQuad = Mesh::GenerateQuad();
 
 	camera = new Camera();
-	camera->SetPosition(Vector3(-15, 785, 2250)); // first view.. (note: for deer mesh)
+	//camera->SetPosition(Vector3(-15, 785, 2250)); // first view.. (note: for deer mesh)
 	//camera->SetPosition(Vector3(2290, 850, 15)); // second view.. (note: for deer mesh)
 	//camera->SetYaw(90); // second view.. (note: for deer mesh)
 
 	// SSBO to temporarily store the dmin and dmax from the chosen plane normals..
-	glGenBuffers(2, tempPlaneDsSSBO);
-	
-	// first one
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, tempPlaneDsSSBO[0]);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, tempPlaneDsSSBO[0]);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	glGenBuffers(1, &tempPlaneDsSSBO);
 
-	// second one
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, tempPlaneDsSSBO[1]);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 9, tempPlaneDsSSBO[1]);
+	// second one, further testing 9..
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, tempPlaneDsSSBO);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 9, tempPlaneDsSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	// Stuffs related to compute shader..
@@ -115,7 +110,7 @@ Renderer::~Renderer(void) {
 
 	glDeleteTextures(1, &image);
 
-	glDeleteBuffers(2, tempPlaneDsSSBO);
+	glDeleteBuffers(1, &tempPlaneDsSSBO);
 	glDeleteFramebuffers(1, &bufferFBO);
 }
 
@@ -211,10 +206,6 @@ void Renderer::InitBoundingVolumeMulti(GLuint numWorkGroups, GLuint numFacesPerG
 	SetCurrentShader(volumeCreatorFirst);
 	UpdateShaderMatrices();
 
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, tempPlaneDsSSBO[0]);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, numVisibleFaces * NUM_PLANE_NORMALS * 2 * sizeof(float), NULL, GL_STATIC_DRAW);
-	//glBindBuffer(GL_SHADER_STORAGE_BARRIER_BIT, 0);
-
 	glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numVisibleFaces"), numVisibleFaces);
 
 	glDispatchComputeGroupSizeARB(numWorkGroups, 1, 1, numFacesPerGroup, NUM_PLANE_NORMALS, 1);
@@ -223,8 +214,8 @@ void Renderer::InitBoundingVolumeMulti(GLuint numWorkGroups, GLuint numFacesPerG
 	// second stage..
 	SetCurrentShader(volumeCreatorSecond);
 
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, tempPlaneDsSSBO[1]);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, numWorkGroups * NUM_PLANE_NORMALS * 2 * sizeof(float), NULL, GL_STATIC_DRAW);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, tempPlaneDsSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, numWorkGroups * NUM_PLANE_NORMALS * 2 * sizeof(float), NULL, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numFacesPerGroup"), numFacesPerGroup);

@@ -285,28 +285,6 @@ vec4 getFinalColour(ivec2 pixelCoords) {
 
     // IT WORKS!!!
     // We're now using icosphere to check for bounding volume..
-    //for (int i = 0; i < numVisibleFaces; ++i) {
-        //if (rayIntersectsVolume(primaryRay, i)) {
-            //finalColour += vec4(0.0, 0.05, 0.0, 1.0);
-            /*
-            if (rayIntersectsTriangle(primaryRay, facesSSBO[idSSBO[i]])) {
-                if (useTexture > 0) {
-                    vec2 tc0 = texCoordsSSBO[facesSSBO[idSSBO[i]].texIndices[0]];
-                    vec2 tc1 = texCoordsSSBO[facesSSBO[idSSBO[i]].texIndices[1]];
-                    vec2 tc2 = texCoordsSSBO[facesSSBO[idSSBO[i]].texIndices[2]];
-                    vec2 texCoord = primaryRay.barycentricCoord.z * tc0 + primaryRay.barycentricCoord.x * tc1 + primaryRay.barycentricCoord.y * tc2;
-                    //return isInShadow ? texture(diffuse, texCoord) * vec4(0.5, 0.5, 0.5, 1.0) : texture(diffuse, texCoord) * lightColour;
-                    return texture(diffuse, texCoord) * lightColour;
-                }
-                else {
-                    //return isInShadow ? vec4(primaryRay.barycentricCoord, 1.0) * vec4(0.5, 0.5, 0.5, 1.0) : vec4(primaryRay.barycentricCoord, 1.0) * lightColour;
-                    return vec4(primaryRay.barycentricCoord, 1.0) * lightColour;
-                }
-            }
-            */
-        //}
-    //}
-       ///*
     if (rayIntersectsVolume(primaryRay)) {
         //finalColour += vec4(0.0, 0.05, 0.0, 1.0);
         ///*

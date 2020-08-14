@@ -6,7 +6,7 @@ Mesh::Mesh(void) {
 	numFaces = 0;
 
 	facesInfoSSBO = 0;
-	planeDsSSBO = 0;
+	rootNodeSSBO = 0;
 	
 	for (int i = 0; i < MAX; ++i) {
 		verticesInfoSSBO[i] = 0;
@@ -62,7 +62,8 @@ Mesh::~Mesh(void) {
 	glDeleteBuffers(MAX, verticesInfoSSBO);
 	glDeleteBuffers(1, &facesInfoSSBO);
 	glDeleteBuffers(1, &visibleFacesIDSSBO);
-	glDeleteBuffers(1, &planeDsSSBO);
+	glDeleteBuffers(1, &rootNodeSSBO);
+	glDeleteBuffers(1, &leafNodesSSBO);
 #endif
 }
 
@@ -269,7 +270,7 @@ Mesh* Mesh::GenerateQuadRayTracing() {
 }
 
 void Mesh::GenerateVerticesSSBOs() {
-	std::vector<Vector4> temp;	// need this to convert vec3 to vec4, otherwise it's not gonna be fun..
+	std::vector<Vector4> temp;	// need this to convert vec3 to vec4, otherwise it's not gonna be fun in the GLSL..
 
 	// Positions
 	for (unsigned int i = 0; i < numVertices; ++i) {
@@ -278,7 +279,6 @@ void Mesh::GenerateVerticesSSBOs() {
 	glGenBuffers(1, &verticesInfoSSBO[POSITION]);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[POSITION]);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(Vector4), temp.data(), GL_STATIC_DRAW);
-	//glBindBufferBase(GL_SHADER_STORAGE_BUFFER, POSITION, verticesInfoSSBO[POSITION]);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	temp.clear();
 
@@ -287,7 +287,6 @@ void Mesh::GenerateVerticesSSBOs() {
 		glGenBuffers(1, &verticesInfoSSBO[COLOUR]);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[COLOUR]);
 		glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(Vector4), colours->data(), GL_STATIC_DRAW);
-		//glBindBufferBase(GL_SHADER_STORAGE_BUFFER, COLOUR, verticesInfoSSBO[COLOUR]);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	}
 
@@ -296,7 +295,6 @@ void Mesh::GenerateVerticesSSBOs() {
 		glGenBuffers(1, &verticesInfoSSBO[TEX_COORD]);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[TEX_COORD]);
 		glBufferData(GL_SHADER_STORAGE_BUFFER, numTexCoords * sizeof(Vector2), textureCoords->data(), GL_STATIC_DRAW);	// change this later..
-		//glBindBufferBase(GL_SHADER_STORAGE_BUFFER, TEX_COORD, verticesInfoSSBO[TEX_COORD]);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	}
 
@@ -307,7 +305,6 @@ void Mesh::GenerateVerticesSSBOs() {
 	glGenBuffers(1, &verticesInfoSSBO[NORMAL]);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[NORMAL]);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, numNormals * sizeof(Vector4), temp.data(), GL_STATIC_DRAW);
-	//glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NORMAL, verticesInfoSSBO[NORMAL]);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	temp.clear();
 }
@@ -317,7 +314,6 @@ void Mesh::GenerateFacesSSBOs() {
 	glGenBuffers(1, &facesInfoSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, facesInfoSSBO);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, numFaces * sizeof(Triangle), facesList->data(), GL_STATIC_DRAW);
-	//glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX + 1, facesInfoSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	// Face ID 
@@ -327,12 +323,16 @@ void Mesh::GenerateFacesSSBOs() {
 	//glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX, visibleFacesIDSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-	// Planes 
-	GLuint numDs = 86;
-	glGenBuffers(1, &planeDsSSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, planeDsSSBO);
+	// Root node 
+	GLuint numDs = NUM_PLANE_NORMALS * 2;
+	glGenBuffers(1, &rootNodeSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, rootNodeSSBO);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, numDs * sizeof(float), NULL, GL_DYNAMIC_DRAW);
-	//glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX + 2, planeDsSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	// Leaf nodes
+	glGenBuffers(1, &leafNodesSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, leafNodesSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
@@ -359,9 +359,10 @@ void Mesh::UpdateCollectedID() {
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, collectedID.size() * sizeof(GLint), collectedID.data());
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-	//glBindBuffer(GL_SHADER_STORAGE_BUFFER, planeDsSSBO);
-	//glBufferData(GL_SHADER_STORAGE_BUFFER, numVisibleFaces * 19 * 2 * sizeof(float), NULL, GL_DYNAMIC_DRAW);	// 3 for no. normals, 2 for min and max..
-	//glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	// Update the leaf nodes SSBO after getting the number of visible faces/triangles..
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, leafNodesSSBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, numVisibleFaces * NUM_PLANE_NORMALS * 2 * sizeof(float), NULL, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
 // These bindings could be divided into individual ones
@@ -377,7 +378,8 @@ void Mesh::BindSSBOs() {
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, NORMAL, verticesInfoSSBO[NORMAL]);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX + 1, facesInfoSSBO);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX, visibleFacesIDSSBO);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX + 2, planeDsSSBO);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX + 2, rootNodeSSBO);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, leafNodesSSBO);	// perhaps change this later, further testing 9..
 }
 
 void Mesh::PrintDistances() {

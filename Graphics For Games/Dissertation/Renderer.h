@@ -5,7 +5,7 @@
 #include "../../nclgl/Light.h"
 #include <algorithm>
 
-constexpr GLuint NUM_PLANE_NORMALS = 43;
+// Note to self: the NUM_PLANE_NORMALS is in common.h file..
 
 class Renderer : public OGLRenderer {
 public:
@@ -52,7 +52,7 @@ protected:
 
 	// Temp d ssbos
 	// remove this later?
-	GLuint tempPlaneDsSSBO[2];
+	GLuint tempPlaneDsSSBO;
 
 	// testing 
 	// FBO to clear the image
