@@ -10,7 +10,7 @@ public:
 
 	static void CreateCube() {
 		OBJMesh* temp = new OBJMesh();
-		temp->LoadOBJMesh(MESHDIR"Sponze.obj");
+		temp->LoadOBJMesh(MESHDIR"Japanese_Temple.obj");
 		cube = temp;
 		/*cube->SetTexutre(SOIL_load_OGL_texture("E:/Misc/Diss 2020/Textures/brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, 0));
 		if (!cube->GetTexture()) {

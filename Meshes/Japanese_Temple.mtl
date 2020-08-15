@@ -1,0 +1,16 @@
+# Blender MTL File: 'Japanese_Temple_Blender.blend'
+# Material Count: 1
+
+newmtl Japanese_Shrine_Mat
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Bump C:\\Users\\julia\\Downloads\\10-japanese_temple_model\\Japanese_Temple_Model\\Model\\Tex\\Unity\\Japanese_Temple_Paint2_Japanese_Shrine_Mat_Normal.png
+map_Kd C:\\Users\\julia\\Downloads\\10-japanese_temple_model\\Japanese_Temple_Model\\Model\\Tex\\Unity\\Japanese_Temple_Paint2_Japanese_Shrine_Mat_AlbedoTransparency.png
+map_Ns C:\\Users\\julia\\Downloads\\10-japanese_temple_model\\Japanese_Temple_Model\\Model\\Tex\\Unity\\Japanese_Temple_Paint2_Japanese_Shrine_Mat_Roughness.png
+refl C:\\Users\\julia\\Downloads\\10-japanese_temple_model\\Japanese_Temple_Model\\Model\\Tex\\Unity\\Japanese_Temple_Paint2_Japanese_Shrine_Mat_MetallicSmoothness.png

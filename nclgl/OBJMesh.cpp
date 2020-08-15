@@ -195,7 +195,7 @@ bool	OBJMesh::LoadOBJMesh(std::string filename)	{
 		// ray tracing starting from here..
 		// vertices..
 
-// To use this class for rasterization, just go to common.h and comment out the #define USE_RAY_TRACING
+// To use this class for rasterization, just go to common.h and comment out the #define USE_RAY_TRACING..
 #ifdef USE_RAY_TRACING	
 		m->numVertices = inputVertices.size();
 		m->numTexCoords = inputTexCoords.size();
@@ -219,33 +219,52 @@ bool	OBJMesh::LoadOBJMesh(std::string filename)	{
 			}
 		}
 
+		/* only initialize the thing if it's the parent mesh..
+		=> helps efficiently save memory..
+		same thing is applied to normals..
+		*/ 
 		// vertices..
-		m->vertices = new std::vector<Vector3>(m->numVertices);
-		for (unsigned int j = 0; j < m->numVertices; ++j) {
-			m->vertices->at(j) = inputVertices[j];
+		if (i == 0) {
+			m->vertices = new std::vector<Vector3>(m->numVertices);
+			for (unsigned int j = 0; j < m->numVertices; ++j) {
+				m->vertices->at(j) = inputVertices[j];
+			}
+		}
+		else {
+			m->vertices = this->vertices;
 		}
 
 		// texture coordinates..
 		if (!sm->texIndices.empty()) {
-			m->textureCoords = new std::vector<Vector2>(inputTexCoords.size());
-			for (unsigned int j = 0; j < inputTexCoords.size(); ++j) {
-				m->textureCoords->at(j) = inputTexCoords[j];
+			if (i == 0) {
+				m->textureCoords = new std::vector<Vector2>(inputTexCoords.size());
+				for (unsigned int j = 0; j < inputTexCoords.size(); ++j) {
+					m->textureCoords->at(j) = inputTexCoords[j];
+				}
+			}
+			else {
+				m->textureCoords = this->textureCoords;
 			}
 		}
 
 		// normals..
 		if (!sm->normIndices.empty()) {
-			m->normals = new std::vector<Vector3>(inputNormals.size());
-			for (unsigned int j = 0; j < inputNormals.size(); ++j) {
-				m->normals->at(j) = inputNormals[j];
+			if (i == 0) {
+				m->normals = new std::vector<Vector3>(inputNormals.size());
+				for (unsigned int j = 0; j < inputNormals.size(); ++j) {
+					m->normals->at(j) = inputNormals[j];
+				}
+			}
+			else {
+				m->normals = this->normals;
 			}
 		}
 		else {
-			m->GenerateNormals();
+			m->GenerateNormals();	// this one is different, where it uses the vertices to calculate the normals => aka the normals of each mesh/submesh are not the same..
 		}
 
 		// tangents, do something for it later on..
-		m->GenerateTangents();
+		m->GenerateTangents();	// same thing with tangents..
 		m->GenerateSSBOs();
 #else
 		m->numVertices = sm->vertIndices.size();
@@ -256,9 +275,9 @@ bool	OBJMesh::LoadOBJMesh(std::string filename)	{
 		}
 
 		if(!sm->texIndices.empty())	{
-			m->textureCoords = new std::vector<Vector2>[m->numVertices];
+			m->textureCoords = new std::vector<Vector2>(m->numVertices);
 			for(unsigned int j = 0; j < sm->texIndices.size(); ++j) {
-				m->textureCoords->at(j) = inputTexCoords[sm->texIndices[j]-1];
+				m->textureCoords->at(j) = inputTexCoords.at(sm->texIndices.at(j) - 1);
 			}
 		}
 
@@ -269,7 +288,7 @@ bool	OBJMesh::LoadOBJMesh(std::string filename)	{
 			m->normals = new std::vector<Vector3>(m->numVertices);
 
 			for(unsigned int j = 0; j < sm->normIndices.size(); ++j) {
-				m->normals->at(j) = inputNormals[sm->normIndices[j]-1];
+				m->normals->at(j) = inputNormals.at(sm->normIndices.at(j) - 1);
 			}
 		}
 

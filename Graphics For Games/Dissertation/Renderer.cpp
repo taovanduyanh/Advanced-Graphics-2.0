@@ -2,14 +2,13 @@
 
 Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	triangle = new OBJMesh();
-	dynamic_cast<OBJMesh*>(triangle)->LoadOBJMesh(MESHDIR"Tower.obj");
-
+	dynamic_cast<OBJMesh*>(triangle)->LoadOBJMesh(MESHDIR"deer.obj");
 	//triangle->SetTexutre(SOIL_load_OGL_texture(TEXTUREDIR"brick.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS));
 
 	sceneQuad = Mesh::GenerateQuad();
 
 	camera = new Camera();
-	//camera->SetPosition(Vector3(-15, 785, 2250)); // first view.. (note: for deer mesh)
+	camera->SetPosition(Vector3(-15, 785, 2250)); // first view.. (note: for deer mesh)
 	//camera->SetPosition(Vector3(2290, 850, 15)); // second view.. (note: for deer mesh)
 	//camera->SetYaw(90); // second view.. (note: for deer mesh)
 
@@ -72,7 +71,7 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	// further testing..
 	// lighting..
 	light = new Light();
-	light->SetPosition(Vector3(500, 2500, -150));
+	light->SetPosition(Vector3(0, 2500, 0));
 	//light->SetColour(Vector4(0.98f, 0.45f, 0.99f, 1.0f));	
 	light->SetColour(Vector4(1.0f, 1.0f, 1.0f, 1.0f));
 

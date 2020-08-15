@@ -64,6 +64,11 @@ uncomment the OBJ_USE_NORMALS define. If you want to use an OBJMesh in the secon
 time lighting tutorial, uncomment both OBJ_USE_NORMALS and OBJ_USE_TANGENTS_BUMPMAPS
 */
 
+/*
+The USE_RAY_TRACING section and some parts of the original code written by Prof. Rich is written and modified by Van Duy Anh Tao
+for dissertation..
+*/
+
 #include "common.h"
 #ifdef WEEK_2_CODE
 
@@ -139,7 +144,9 @@ public:
 
 	virtual void Draw();
 
+#ifdef USE_RAY_TRACING
 	virtual std::vector<Mesh*> GetChildren() const override { return children; }	// Get the submeshes of OBJ mesh..
+#endif
 
 protected:
 	void	SetTexturesFromMTL(string &mtlFile, string &mtlType, map <string, MTLInfo>& allMats);

@@ -7,12 +7,14 @@ Mesh::Mesh(void) {
 
 	facesInfoSSBO = 0;
 	rootNodeSSBO = 0;
-	
+	leafNodesSSBO = 0;
+
 	for (int i = 0; i < MAX; ++i) {
 		verticesInfoSSBO[i] = 0;
 	}
 
 	visibleFacesIDSSBO = 0;
+	numVisibleFaces = 0;
 #endif
 
 	for (int i = 0; i < MAX_BUFFER; ++i) {
@@ -34,8 +36,6 @@ Mesh::Mesh(void) {
 
 	texture = 0;
 	bumpTexture = 0;
-
-	numVisibleFaces = 0;
 
 	type = GL_TRIANGLES;
 }
@@ -403,22 +403,8 @@ void Mesh::GenerateNormals() {
 	for (GLuint i = 0; i < numVertices; ++i) {
 		normals->at(i) = Vector3();
 	}
-
-	if (indices) {
-		for (GLuint i = 0; i < numIndices; i+=3) {
-			GLuint a = indices->at(i);
-			GLuint b = indices->at(i + 1);
-			GLuint c = indices->at(i + 2);
-
-			Vector3 normal = Vector3::Cross(vertices->at(b) - vertices->at(a), vertices->at(c) - vertices->at(a));
-
-			normals->at(a) += normal;
-			normals->at(b) += normal;
-			normals->at(c) += normal;
-		}
-	}
 #ifdef USE_RAY_TRACING
-	else if (facesList) {
+	if (facesList) {
 		for (GLuint i = 0; i < numFaces; ++i) {
 			GLuint a = facesList->at(i).verticesIndices[0];
 			GLuint b = facesList->at(i).verticesIndices[1];
@@ -436,6 +422,19 @@ void Mesh::GenerateNormals() {
 		}
 	}
 #else
+	if (indices) {
+		for (GLuint i = 0; i < numIndices; i += 3) {
+			GLuint a = indices->at(i);
+			GLuint b = indices->at(i + 1);
+			GLuint c = indices->at(i + 2);
+
+			Vector3 normal = Vector3::Cross(vertices->at(b) - vertices->at(a), vertices->at(c) - vertices->at(a));
+
+			normals->at(a) += normal;
+			normals->at(b) += normal;
+			normals->at(c) += normal;
+		}
+	}
 	else {
 		for (GLuint i = 0; i < numVertices; i += 3) {
 			Vector3& a = vertices->at(i);
@@ -468,21 +467,8 @@ void Mesh::GenerateTangents() {
 		tangents->at(i) = Vector3();
 	}
 
-	if (indices) {
-		for (GLuint i = 0; i < numIndices; i+=3) {
-			int a = indices->at(i);
-			int b = indices->at(i + 1);
-			int c = indices->at(i + 2);
-
-			Vector3 tangent = GenerateTangent(vertices->at(a), vertices->at(b), vertices->at(c), textureCoords->at(a), textureCoords->at(b), textureCoords->at(c));
-
-			tangents->at(a) += tangent;
-			tangents->at(b) += tangent;
-			tangents->at(c) += tangent;
-		}
-	}
 #ifdef USE_RAY_TRACING
-	else if (facesList) {
+	if (facesList) {
 		for (GLuint i = 0; i < numFaces; ++i) {
 			// Vertices indices..
 			GLuint a = facesList->at(i).verticesIndices[0];
@@ -502,6 +488,19 @@ void Mesh::GenerateTangents() {
 		}
 	}
 #else
+	if (indices) {
+		for (GLuint i = 0; i < numIndices; i += 3) {
+			int a = indices->at(i);
+			int b = indices->at(i + 1);
+			int c = indices->at(i + 2);
+
+			Vector3 tangent = GenerateTangent(vertices->at(a), vertices->at(b), vertices->at(c), textureCoords->at(a), textureCoords->at(b), textureCoords->at(c));
+
+			tangents->at(a) += tangent;
+			tangents->at(b) += tangent;
+			tangents->at(c) += tangent;
+		}
+	}
 	else {
 		for (GLuint i = 0; i < numVertices; i+=3) {
 			Vector3 tangent = GenerateTangent(vertices->at(i), vertices->at(i + 1), vertices->at(i + 2), textureCoords->at(i), textureCoords->at(i + 1), textureCoords->at(i + 2));

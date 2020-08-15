@@ -40,6 +40,7 @@ layout(std430, binding = 7) buffer PlaneDs {
 
 layout(local_size_variable) in;
 
+// Default plane normals..
 const vec3 defaultNormals[3] = vec3[3] 
 (
     vec3(1, 0, 0),
@@ -47,6 +48,7 @@ const vec3 defaultNormals[3] = vec3[3]
     vec3(0, 0, 1)
 );
 
+// Kay and Kajiya selected plane normals..
 const vec3 kSNormals[7] = vec3[7]
 (
     vec3(1, 0, 0),
@@ -59,6 +61,7 @@ const vec3 kSNormals[7] = vec3[7]
     vec3(1 / sqrt(3), -1 / sqrt(3), 1 / sqrt(3))
 );
 
+// Default plane normals plus icosphere normals.. 
 const vec3 icoNormals[43] = vec3[43]
 (
 vec3(1, 0, 0),
@@ -148,7 +151,7 @@ vec4 getFinalColour(ivec2 pixelCoords);
 
 // NOTE: Remember to remove the unecessary comment later
 void main() {
-    // check first..
+    // check if the id are beyond the image's pixel first..
     ivec2 imageSize = imageSize(image);
     if ((gl_GlobalInvocationID.x >= imageSize.x) || (gl_GlobalInvocationID.y >= imageSize.y)) {
         return;
@@ -162,6 +165,9 @@ void main() {
     barrier();
 }
 
+/*
+Intersection between ray/bounding volume
+*/
 bool rayIntersectsVolume(Ray ray) {
     float tNear = -1.0 / 0.0;
     float tFar = 1.0 / 0.0;
@@ -239,6 +245,9 @@ bool rayIntersectsTriangle(inout Ray ray, Triangle triangle) {
     return true;
 }
 
+/*
+Calculating the middle point of the pixel
+*/
 vec3 pixelMiddlePoint(ivec2 pixelCoords) {
     ivec2 imageSize = imageSize(image); // x = width; y = height
     float imageRatio = imageSize.x / imageSize.y;
@@ -252,7 +261,7 @@ vec3 pixelMiddlePoint(ivec2 pixelCoords) {
     return middlePoint;
 }
 
-/**
+/*
 Convert degree to radian
 */
 float toRadian(float angle) {
@@ -260,20 +269,16 @@ float toRadian(float angle) {
 }
 
 vec4 getFinalColour(ivec2 pixelCoords) {
-    bool isInShadow = false;
+    bool isInShadow = false;    // flag to check if the 
+    int closestID = -1; // perhaps this could be infinity as well.. (although it might affect the performance)
+    float closestTVal = 1.0 / 0.0; // infinity..
+    vec3 closestBaryCoords = vec3(0);   // bary coords from the closest intersection point..
 
-    // further testing..
-    vec4 finalColour;
-
+    vec4 finalColour;   // the final calculated colour in the end..
     vec4 imageColour = imageLoad(image, pixelCoords);
-    // If retrieved image colour at the pixel coords is dark (all values is 0) then it means the image is not yet drawn..
-    // (this is for OBJ meshes that have submeshes..)
-    if (imageColour == vec4(0)) { 
-        finalColour = vec4(0.2, 0.2, 0.2, 1.0);
-    }
-    else {
-        finalColour = imageColour;
-    }
+    // If the retrieved image colour at the pixel coords is dark (all values is 0) then it means the image is not yet drawn..
+    // (you don't want to comment the code below if the OBJMesh has submeshes..)
+    finalColour = (imageColour == vec4(0)) ? vec4(0.2, 0.2, 0.2, 1.0) : imageColour;
     
     // the middle point of the pixel should be in world space now by multiplying with the inverse view matrix..
     // need to find the middle point of the pixel in world space..
@@ -290,38 +295,40 @@ vec4 getFinalColour(ivec2 pixelCoords) {
         ///*
         for (int i = 0; i < numVisibleFaces; ++i) {
             int intersectedID = idSSBO[i];
-            if (rayIntersectsTriangle(primaryRay, facesSSBO[intersectedID])) {
-                
-                /*
-                Ray shadowRay;
-                shadowRay.origin = primaryRay.origin + primaryRay.direction * primaryRay.t;
-                shadowRay.direction = normalize(lightPos - shadowRay.origin);
-                
-                if (rayIntersectsVolume(shadowRay)) {
-                    for (int j = 0; j < facesSSBO.length(); ++j) {
-                        if (j != intersectedID && rayIntersectsTriangle(shadowRay, facesSSBO[j])) {
-                            isInShadow = true;
-                            break;
-                        }   
-                    }
-                }
-                //*/       
-
-                if (useTexture > 0) {
-                    vec2 tc0 = texCoordsSSBO[facesSSBO[intersectedID].texIndices[0]];
-                    vec2 tc1 = texCoordsSSBO[facesSSBO[intersectedID].texIndices[1]];
-                    vec2 tc2 = texCoordsSSBO[facesSSBO[intersectedID].texIndices[2]];
-                    vec2 texCoord = primaryRay.barycentricCoord.z * tc0 + primaryRay.barycentricCoord.x * tc1 + primaryRay.barycentricCoord.y * tc2;
-                    //return isInShadow ? texture(diffuse, texCoord) * vec4(0.5, 0.5, 0.5, 1.0) : texture(diffuse, texCoord) * lightColour;
-                    return texture(diffuse, texCoord) * lightColour;
-                }
-                else {
-                    //return isInShadow ? vec4(primaryRay.barycentricCoord, 1.0) * vec4(0.5, 0.5, 0.5, 1.0) : vec4(primaryRay.barycentricCoord, 1.0) * lightColour;
-                    return vec4(primaryRay.barycentricCoord, 1.0) * lightColour;
-                }
+            if (rayIntersectsTriangle(primaryRay, facesSSBO[intersectedID]) && (primaryRay.t < closestTVal)) {
+                closestTVal = primaryRay.t;
+                closestID = intersectedID;
+                closestBaryCoords = primaryRay.barycentricCoord;  
             }
         }
-      
+    }
+
+    if (closestID != -1) {
+        /*
+        Ray shadowRay;
+        shadowRay.origin = primaryRay.origin + primaryRay.direction * closestTVal;
+        shadowRay.direction = normalize(lightPos - shadowRay.origin);
+                
+        if (rayIntersectsVolume(shadowRay)) {
+            for (int j = 0; j < facesSSBO.length(); ++j) {
+                if (j != closestID && rayIntersectsTriangle(shadowRay, facesSSBO[j])) {
+                    isInShadow = true;
+                    break;
+                }   
+            }
+        }
+        //*/ 
+
+        if (useTexture > 0) {
+            vec2 tc0 = texCoordsSSBO[facesSSBO[closestID].texIndices[0]];
+            vec2 tc1 = texCoordsSSBO[facesSSBO[closestID].texIndices[1]];
+            vec2 tc2 = texCoordsSSBO[facesSSBO[closestID].texIndices[2]];
+            vec2 texCoord = closestBaryCoords.z * tc0 + closestBaryCoords.x * tc1 + closestBaryCoords.y * tc2;
+            return isInShadow ? texture(diffuse, texCoord) * vec4(0.5, 0.5, 0.5, 1.0) : texture(diffuse, texCoord) * lightColour;
+        }
+        else {
+            return isInShadow ? vec4(closestBaryCoords, 1.0) * vec4(0.5, 0.5, 0.5, 1.0) : vec4(closestBaryCoords, 1.0) * lightColour;
+        }
     }
   //*/
     return finalColour;
