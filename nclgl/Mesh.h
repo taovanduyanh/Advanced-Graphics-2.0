@@ -1,11 +1,9 @@
 #pragma once
-#include "OGLRenderer.h"
+#include "OGLRenderer.h" 
 
 #ifdef USE_RAY_TRACING
 
-
-
-// this is for SSBOs, while the above is for vertex buffers
+// this is for SSBOs, while the MeshVertexBuffer is for vertex buffers
 enum VertexInfo {
 	POSITION, COLOUR, TEX_COORD, NORMAL, TANGENT, MAX
 };
@@ -14,10 +12,6 @@ struct Triangle {
 	GLuint verticesIndices[3];
 	GLuint texCoordsIndices[3];
 	GLuint normalsIndices[3];
-};
-
-struct BoundingBox {
-	Vector4 boundVectors[2];
 };
 
 #endif // USE_RAY_TRACING
@@ -57,9 +51,6 @@ public:
 	// 'Boogy' virtual function.. ()
 	virtual std::vector<Mesh*> GetChildren() const { return std::vector<Mesh*>(); };
 
-	// remove this later..
-	void PrintDistances();
-
 #endif // USE_RAY_TRACING
 
 protected:
@@ -86,12 +77,12 @@ protected:
 	GLuint type;
 
 	// vertex data..
-	std::vector<Vector3>* vertices;
-	std::vector<Vector4>* colours;
-	std::vector<Vector2>* textureCoords;
-	std::vector<Vector3>* normals;
-	std::vector<Vector3>* tangents;
-	std::vector<GLuint>* indices;
+	Vector3* vertices;
+	Vector4* colours;
+	Vector2* textureCoords;
+	Vector3* normals;
+	Vector3* tangents;
+	GLuint* indices;
 
 #ifdef USE_RAY_TRACING
 
@@ -113,7 +104,7 @@ protected:
 	// A triangle/face always has three vertices.. 
 	// Note that some OBJ meshes only have positions 
 	// And all of them have number of faces (assumed)
-	std::vector<Triangle>* facesList;
+	Triangle* facesList;
 
 #endif // USE_RAY_TRACING
 };

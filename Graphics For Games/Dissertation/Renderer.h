@@ -1,3 +1,10 @@
+/*
+Van Duy Anh Tao
+Newcastle University
+Computer Game Engineering
+Dissertation
+August 2020
+*/
 #pragma once
 #include "../../nclgl/OGLRenderer.h"
 #include "../../nclgl/Camera.h"
@@ -47,14 +54,13 @@ protected:
 	Shader* rayTracerShader;
 	Shader* finalShader;
 
-	// further testing..
+	// Lighting..
 	Light* light;
 
-	// Temp d ssbos
-	// remove this later?
-	GLuint tempPlaneDsSSBO;
+	// Temp d SSBO
+	// This is only temporary in order to create the bounding volume that covers the whole test mesh..
+	GLuint tempGroupNodesSSBO;
 
-	// testing 
 	// FBO to clear the image
 	GLuint bufferFBO;
 

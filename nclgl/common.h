@@ -28,7 +28,7 @@ time lighting tutorial, uncomment both MD5_USE_NORMALS and MD5_USE_TANGENTS_BUMP
 #define MD5_USE_NORMALS
 #define MD5_USE_TANGENTS_BUMPMAPS
 
-// For dissertation
+// For dissertation (Van Duy Anh Tao)
 // Comment this if you want to go back to rasterization, but don't do it for the diss obviously..
 #define USE_RAY_TRACING
 

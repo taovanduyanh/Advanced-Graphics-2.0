@@ -203,18 +203,19 @@ bool	OBJMesh::LoadOBJMesh(std::string filename)	{
 		m->numFaces = sm->vertIndices.size() / 3;
 
 		// faces/polygons..
-		m->facesList = new std::vector<Triangle>(m->numFaces);
+		m->facesList = new Triangle[m->numFaces];
 		for (unsigned int j = 0; j < m->numFaces; ++j) {
 			unsigned int firstIndex = j * 3;
-			m->facesList->at(j) = Triangle();
+			m->facesList[j] = Triangle();
 
 			for (unsigned int k = 0; k < 3; ++k) {
-				m->facesList->at(j).verticesIndices[k] = sm->vertIndices[firstIndex + k] - 1;
+				m->facesList[j].verticesIndices[k] = sm->vertIndices[firstIndex + k] - 1;
+
 				if (!sm->texIndices.empty()) {
-					m->facesList->at(j).texCoordsIndices[k] = sm->texIndices[firstIndex + k] - 1;
+					m->facesList[j].texCoordsIndices[k] = sm->texIndices[firstIndex + k] - 1;
 				}
 				if (!sm->normIndices.empty()) {
-					m->facesList->at(j).normalsIndices[k] = sm->normIndices[firstIndex + k] - 1;
+					m->facesList[j].normalsIndices[k] = sm->normIndices[firstIndex + k] - 1;
 				}
 			}
 		}
@@ -225,9 +226,9 @@ bool	OBJMesh::LoadOBJMesh(std::string filename)	{
 		*/ 
 		// vertices..
 		if (i == 0) {
-			m->vertices = new std::vector<Vector3>(m->numVertices);
+			m->vertices = new Vector3[m->numVertices];
 			for (unsigned int j = 0; j < m->numVertices; ++j) {
-				m->vertices->at(j) = inputVertices[j];
+				m->vertices[j] = inputVertices[j];
 			}
 		}
 		else {
@@ -237,9 +238,9 @@ bool	OBJMesh::LoadOBJMesh(std::string filename)	{
 		// texture coordinates..
 		if (!sm->texIndices.empty()) {
 			if (i == 0) {
-				m->textureCoords = new std::vector<Vector2>(inputTexCoords.size());
+				m->textureCoords = new Vector2[inputTexCoords.size()];
 				for (unsigned int j = 0; j < inputTexCoords.size(); ++j) {
-					m->textureCoords->at(j) = inputTexCoords[j];
+					m->textureCoords[j] = inputTexCoords[j];
 				}
 			}
 			else {
@@ -250,9 +251,9 @@ bool	OBJMesh::LoadOBJMesh(std::string filename)	{
 		// normals..
 		if (!sm->normIndices.empty()) {
 			if (i == 0) {
-				m->normals = new std::vector<Vector3>(inputNormals.size());
+				m->normals = new Vector3[inputNormals.size()];
 				for (unsigned int j = 0; j < inputNormals.size(); ++j) {
-					m->normals->at(j) = inputNormals[j];
+					m->normals[j] = inputNormals[j];
 				}
 			}
 			else {
@@ -269,15 +270,15 @@ bool	OBJMesh::LoadOBJMesh(std::string filename)	{
 #else
 		m->numVertices = sm->vertIndices.size();
 
-		m->vertices = new std::vector<Vector3>(m->numVertices);
+		m->vertices = new Vector3[m->numVertices];
 		for(unsigned int j = 0; j < sm->vertIndices.size(); ++j) {
-			m->vertices->at(j) = inputVertices[sm->vertIndices[j]-1];
+			m->vertices[j] = inputVertices[sm->vertIndices[j]-1];
 		}
 
 		if(!sm->texIndices.empty())	{
-			m->textureCoords = new std::vector<Vector2>(m->numVertices);
+			m->textureCoords = new Vector2[m->numVertices];
 			for(unsigned int j = 0; j < sm->texIndices.size(); ++j) {
-				m->textureCoords->at(j) = inputTexCoords.at(sm->texIndices.at(j) - 1);
+				m->textureCoords[j] = inputTexCoords.at(sm->texIndices.at(j) - 1);
 			}
 		}
 
@@ -285,10 +286,10 @@ bool	OBJMesh::LoadOBJMesh(std::string filename)	{
 			m->GenerateNormals();
 		}
 		else{
-			m->normals = new std::vector<Vector3>(m->numVertices);
+			m->normals = new Vector3[m->numVertices];
 
 			for(unsigned int j = 0; j < sm->normIndices.size(); ++j) {
-				m->normals->at(j) = inputNormals.at(sm->normIndices.at(j) - 1);
+				m->normals[j] = inputNormals.at(sm->normIndices.at(j) - 1);
 			}
 		}
 

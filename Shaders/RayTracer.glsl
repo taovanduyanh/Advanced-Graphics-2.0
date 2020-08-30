@@ -34,8 +34,16 @@ layout(std430, binding = 6) buffer Faces {
     Triangle facesSSBO[];
 };
 
-layout(std430, binding = 7) buffer PlaneDs {
-    float dSSBO[][2];
+layout(std430, binding = 7) buffer RootNode {
+    float rootNodeValues[][2];
+};
+
+layout(std430, binding = 9) buffer ParentNodes {
+    float parentNodesValues[][2];
+};
+
+layout(std430, binding = 8) buffer LeafNodes {
+    float leafNodesValues[][2];
 };
 
 layout(local_size_variable) in;
@@ -55,10 +63,10 @@ const vec3 kSNormals[7] = vec3[7]
     vec3(0, 1, 0),
     vec3(0, 0, 1),
 
-    vec3(1 / sqrt(3)),
-    vec3(-1 / sqrt(3), 1 / sqrt(3), 1 / sqrt(3)),
-    vec3(-1 / sqrt(3), -1 / sqrt(3), 1 / sqrt(3)),
-    vec3(1 / sqrt(3), -1 / sqrt(3), 1 / sqrt(3))
+    vec3(sqrt(3) / 3),
+    vec3(-sqrt(3) / 3, sqrt(3) / 3, sqrt(3) / 3),
+    vec3(-sqrt(3) / 3, -sqrt(3) / 3, sqrt(3) / 3),
+    vec3(sqrt(3) / 3, -sqrt(3) / 3, sqrt(3) / 3)
 );
 
 // Default plane normals plus icosphere normals.. 
@@ -130,6 +138,11 @@ vec3(0.574583, 0.330396, 0.748794),
 vec3(0.574584, 0.330397, -0.748793) 
 );
 
+const uint depthIndices[3] = uint[3] 
+(
+    0, 1, 2
+);
+
 layout(rgba32f) uniform image2D image;  // this should be in binding 0..
 uniform sampler2D diffuse;  // this should be in binding 1
 uniform int useTexture;
@@ -144,7 +157,8 @@ uniform vec4 lightColour;
 uniform vec3 lightPos;
 
 float toRadian(float angle);
-bool rayIntersectsVolume(Ray ray);
+bool rayIntersectsRootNode(Ray ray);
+bool rayIntersectsLeafNodes(Ray ray, uint index);
 bool rayIntersectsTriangle(inout Ray ray, Triangle triangle);   // the 'inout' keyword allows the ray's values will be modified..
 vec3 pixelMiddlePoint(ivec2 pixelCoords);
 vec4 getFinalColour(ivec2 pixelCoords);
@@ -166,9 +180,9 @@ void main() {
 }
 
 /*
-Intersection between ray/bounding volume
+Intersection between ray/bounding volume (Root Node)
 */
-bool rayIntersectsVolume(Ray ray) {
+bool rayIntersectsRootNode(Ray ray) {
     float tNear = -1.0 / 0.0;
     float tFar = 1.0 / 0.0;
 
@@ -178,8 +192,46 @@ bool rayIntersectsVolume(Ray ray) {
 
         float invDenominator = 1 / planeNormalsDotDirection;
 
-        float tempTN = (dSSBO[i][0] - planeNormalsDotOrigin) * invDenominator;
-        float tempTF = (dSSBO[i][1] - planeNormalsDotOrigin) * invDenominator;
+        float tempTN = (rootNodeValues[i][0] - planeNormalsDotOrigin) * invDenominator;
+        float tempTF = (rootNodeValues[i][1] - planeNormalsDotOrigin) * invDenominator;
+        
+        if (planeNormalsDotDirection < EPSILON) {
+            float temp = tempTN;
+            tempTN = tempTF;
+            tempTF = temp;
+        }
+
+        if (tempTN > tNear) {
+            tNear = tempTN;
+        }
+        if (tempTF < tFar) {
+            tFar = tempTF;
+        }
+
+        // Check tFar against epsilon to prevent "mirror" volume (idk how to describe this lol) 
+        if (tNear > tFar || tFar <= EPSILON) {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+/*
+Intersection between ray/bounding volume (Leaf Nodes)
+*/
+bool rayIntersectsLeafNodes(Ray ray, uint index) {
+    float tNear = -1.0 / 0.0;
+    float tFar = 1.0 / 0.0;
+
+    for (uint i = 0; i < icoNormals.length(); ++i) {
+        float planeNormalsDotOrigin = dot(icoNormals[i], ray.origin);
+        float planeNormalsDotDirection = dot(icoNormals[i], ray.direction);
+
+        float invDenominator = 1 / planeNormalsDotDirection;
+
+        float tempTN = (leafNodesValues[index * icoNormals.length() + i][0] - planeNormalsDotOrigin) * invDenominator;
+        float tempTF = (leafNodesValues[index * icoNormals.length() + i][1] - planeNormalsDotOrigin) * invDenominator;
         
         if (planeNormalsDotDirection < EPSILON) {
             float temp = tempTN;
@@ -205,19 +257,19 @@ bool rayIntersectsVolume(Ray ray) {
 
 /**
 Moller - Trumbore algorithm
-Don't need to check for the determinatorsince the Mesh reader already handles the cases behind + parallel?
+Don't need to check for the determinator since the Mesh reader already handles it.. (assmumingly if the concept is understood correctly)
 */
 bool rayIntersectsTriangle(inout Ray ray, Triangle triangle) {
     // three vertices of the current triangle
     vec3 v0 = (modelMatrix * posSSBO[triangle.vertIndices[0]]).xyz;
     vec3 v1 = (modelMatrix * posSSBO[triangle.vertIndices[1]]).xyz;
     vec3 v2 = (modelMatrix * posSSBO[triangle.vertIndices[2]]).xyz;
-
+    
     vec3 a = v1 - v0;
     vec3 b = v2 - v0;
     vec3 pVec = cross(ray.direction, b);
     float determinator = dot(a, pVec);
-    
+
     float invDet = 1 / determinator;
 
     vec3 tVec = ray.origin - v0;
@@ -274,6 +326,13 @@ vec4 getFinalColour(ivec2 pixelCoords) {
     float closestTVal = 1.0 / 0.0; // infinity..
     vec3 closestBaryCoords = vec3(0);   // bary coords from the closest intersection point..
 
+    // further testing..
+    int parentNodeID = -1;
+    float tNearClosest = 1.0 / 0.0;
+
+    float testNear = -1.0 / 0.0;
+    float testFar = 1.0 / 0.0;
+
     vec4 finalColour;   // the final calculated colour in the end..
     vec4 imageColour = imageLoad(image, pixelCoords);
     // If the retrieved image colour at the pixel coords is dark (all values is 0) then it means the image is not yet drawn..
@@ -290,44 +349,47 @@ vec4 getFinalColour(ivec2 pixelCoords) {
 
     // IT WORKS!!!
     // We're now using icosphere to check for bounding volume..
-    if (rayIntersectsVolume(primaryRay)) {
-        //finalColour += vec4(0.0, 0.05, 0.0, 1.0);
-        ///*
-        for (int i = 0; i < numVisibleFaces; ++i) {
-            int intersectedID = idSSBO[i];
-            if (rayIntersectsTriangle(primaryRay, facesSSBO[intersectedID]) && (primaryRay.t < closestTVal)) {
-                closestTVal = primaryRay.t;
-                closestID = intersectedID;
-                closestBaryCoords = primaryRay.barycentricCoord;  
+    if (rayIntersectsRootNode(primaryRay)) {
+        //finalColour += vec4(0.0, 0.05, 0.0, 1.0);   
+        for (int i = 0; i < numVisibleFaces; ++i) {  // num faces..
+            if (rayIntersectsLeafNodes(primaryRay, i)) {
+                //finalColour += vec4(0.0, 0.05, 0.0, 1.0);
+                ///*
+                int intersectedID = idSSBO[i];
+                if (rayIntersectsTriangle(primaryRay, facesSSBO[intersectedID]) && (primaryRay.t < closestTVal)) {
+                    closestTVal = primaryRay.t;
+                    closestID = intersectedID;
+                    closestBaryCoords = primaryRay.barycentricCoord;  
+                }
             }
         }
-    }
 
-    if (closestID != -1) {
-        /*
-        Ray shadowRay;
-        shadowRay.origin = primaryRay.origin + primaryRay.direction * closestTVal;
-        shadowRay.direction = normalize(lightPos - shadowRay.origin);
-                
-        if (rayIntersectsVolume(shadowRay)) {
-            for (int j = 0; j < facesSSBO.length(); ++j) {
-                if (j != closestID && rayIntersectsTriangle(shadowRay, facesSSBO[j])) {
+        //*/
+        if (closestID != -1) {
+            /*
+            Ray shadowRay;
+            shadowRay.origin = primaryRay.origin + primaryRay.direction * closestTVal;
+            shadowRay.direction = normalize(lightPos - shadowRay.origin);
+                    
+            for (int i = 0; i < facesSSBO.length(); ++i) {
+                if (i != closestID && rayIntersectsTriangle(shadowRay, facesSSBO[i])) {
                     isInShadow = true;
                     break;
                 }   
             }
-        }
-        //*/ 
+            //*/ 
 
-        if (useTexture > 0) {
-            vec2 tc0 = texCoordsSSBO[facesSSBO[closestID].texIndices[0]];
-            vec2 tc1 = texCoordsSSBO[facesSSBO[closestID].texIndices[1]];
-            vec2 tc2 = texCoordsSSBO[facesSSBO[closestID].texIndices[2]];
-            vec2 texCoord = closestBaryCoords.z * tc0 + closestBaryCoords.x * tc1 + closestBaryCoords.y * tc2;
-            return isInShadow ? texture(diffuse, texCoord) * vec4(0.5, 0.5, 0.5, 1.0) : texture(diffuse, texCoord) * lightColour;
-        }
-        else {
-            return isInShadow ? vec4(closestBaryCoords, 1.0) * vec4(0.5, 0.5, 0.5, 1.0) : vec4(closestBaryCoords, 1.0) * lightColour;
+            if (useTexture > 0) {
+                vec2 tc0 = texCoordsSSBO[facesSSBO[closestID].texIndices[0]];
+                vec2 tc1 = texCoordsSSBO[facesSSBO[closestID].texIndices[1]];
+                vec2 tc2 = texCoordsSSBO[facesSSBO[closestID].texIndices[2]];
+                vec2 texCoord = closestBaryCoords.z * tc0 + closestBaryCoords.x * tc1 + closestBaryCoords.y * tc2;
+                return isInShadow ? texture(diffuse, texCoord) * vec4(0.5, 0.5, 0.5, 1.0) : texture(diffuse, texCoord) * lightColour;
+            }
+            else {
+                return isInShadow ? vec4(closestBaryCoords, 1.0) * vec4(0.5, 0.5, 0.5, 1.0) : vec4(closestBaryCoords, 1.0) * lightColour;   // Bary coords colours..
+                //return isInShadow ? vec4(0.5, 0.5, 0.5, 1.0) * vec4(0.5, 0.5, 0.5, 1.0) : vec4(0.5, 0.5, 0.5, 1.0) * lightColour;   // Gray colour..
+            }
         }
     }
   //*/

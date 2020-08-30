@@ -20,8 +20,8 @@ layout(std430, binding = 6) buffer Faces {
     Triangle facesSSBO[];
 };
 
-layout(std430, binding = 8) buffer TempDsFirst {
-    float tempFirst[][2];
+layout(std430, binding = 8) buffer LeafNodes {
+    float leafNodesValues[][2];
 };
 
 layout(local_size_variable) in;
@@ -39,10 +39,10 @@ const vec3 kSNormals[7] = vec3[7]
     vec3(0, 1, 0),
     vec3(0, 0, 1),
 
-    vec3(1 / sqrt(3)),
-    vec3(-1 / sqrt(3), 1 / sqrt(3), 1 / sqrt(3)),
-    vec3(-1 / sqrt(3), -1 / sqrt(3), 1 / sqrt(3)),
-    vec3(1 / sqrt(3), -1 / sqrt(3), 1 / sqrt(3))
+    vec3(sqrt(3) / 3),
+    vec3(-sqrt(3) / 3, sqrt(3) / 3, sqrt(3) / 3),
+    vec3(-sqrt(3) / 3, -sqrt(3) / 3, sqrt(3) / 3),
+    vec3(sqrt(3) / 3, -sqrt(3) / 3, sqrt(3) / 3)
 );
 
 const vec3 icoNormals[43] = vec3[43]
@@ -118,13 +118,13 @@ uniform uint numVisibleFaces;
 uniform mat4 modelMatrix;
 
 void main() {
-    // further testing 4..
     if (gl_GlobalInvocationID.x >= numVisibleFaces) {
         return;
     }
 
-    tempFirst[gl_GlobalInvocationID.x * icoNormals.length() + gl_GlobalInvocationID.y][0] = 1.0 / 0.0;
-    tempFirst[gl_GlobalInvocationID.x * icoNormals.length() + gl_GlobalInvocationID.y][1] = -1.0 / 0.0;
+    // the d values to calculate the bounding volume..
+    leafNodesValues[gl_GlobalInvocationID.x * icoNormals.length() + gl_GlobalInvocationID.y][0] = 1.0 / 0.0;
+    leafNodesValues[gl_GlobalInvocationID.x * icoNormals.length() + gl_GlobalInvocationID.y][1] = -1.0 / 0.0;
 
     memoryBarrierBuffer();
     barrier();
@@ -134,11 +134,11 @@ void main() {
         vec3 currVertex = (modelMatrix * posSSBO[facesSSBO[id].vertIndices[i]]).xyz;
         float d = dot(currVertex, icoNormals[gl_GlobalInvocationID.y]);
 
-        tempFirst[gl_GlobalInvocationID.x * icoNormals.length() + gl_GlobalInvocationID.y][0] 
-        = min(d, tempFirst[gl_GlobalInvocationID.x * icoNormals.length() + gl_GlobalInvocationID.y][0]);
+        leafNodesValues[gl_GlobalInvocationID.x * icoNormals.length() + gl_GlobalInvocationID.y][0] 
+        = min(d, leafNodesValues[gl_GlobalInvocationID.x * icoNormals.length() + gl_GlobalInvocationID.y][0]);
 
-        tempFirst[gl_GlobalInvocationID.x * icoNormals.length() + gl_GlobalInvocationID.y][1] 
-        = max(d, tempFirst[gl_GlobalInvocationID.x * icoNormals.length() + gl_GlobalInvocationID.y][1]);
+        leafNodesValues[gl_GlobalInvocationID.x * icoNormals.length() + gl_GlobalInvocationID.y][1] 
+        = max(d, leafNodesValues[gl_GlobalInvocationID.x * icoNormals.length() + gl_GlobalInvocationID.y][1]);
     }
 
     memoryBarrierBuffer();

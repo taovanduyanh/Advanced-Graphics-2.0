@@ -494,27 +494,27 @@ void MD5FileData::CreateMeshes()	{
 		rootMesh->AddChild(target);
 
 		target->texture		  = subMesh.texIndex;				//Assign the diffuse map
-		target->vertices = new std::vector<Vector3>(subMesh.numverts);	//Make vertex mem
-		target->textureCoords = new std::vector<Vector2>(subMesh.numverts);	//Make texCoord mem
+		target->vertices = new Vector3[subMesh.numverts];	//Make vertex mem
+		target->textureCoords = new Vector2[subMesh.numverts];	//Make texCoord mem
 #ifdef MD5_USE_HARDWARE_SKINNING
 		target->weights		  = new Vector2[subMesh.numverts];	//Make weight mem
 #endif
 
 #ifdef MD5_USE_NORMALS
 		//Create space for normals!
-		target->normals		  = new std::vector<Vector3>(subMesh.numverts);
+		target->normals		  = new Vector3[subMesh.numverts];
 #endif 
 
 #ifdef MD5_USE_TANGENTS_BUMPMAPS
 		//Create space for tangents, and assign the bump texture
 		target->bumpTexture	  = subMesh.bumpIndex;	
-		target->tangents	  = new std::vector<Vector3>(subMesh.numverts);
+		target->tangents	  = new Vector3[subMesh.numverts];
 #endif
 
 		target->numIndices    = subMesh.numtris*3; //Each tri has 3 points....
 		target->numVertices   = subMesh.numverts;
 
-		target->indices		  = new std::vector<GLuint>(target->numIndices); //Make mem for indices
+		target->indices		  = new GLuint[target->numIndices]; //Make mem for indices
 
 		/*
 		Here we go through each tri, and put its indices in the Mesh index buffer. You'll see
@@ -523,9 +523,9 @@ void MD5FileData::CreateMeshes()	{
 		a triangle. So, we simply reverse the order of indices to make the tri anticlockwise
 		*/
 		for(int j = 0; j < subMesh.numtris; ++j) {
-			target->indices->at(j * 3)   = subMesh.tris[j].c;
-			target->indices->at((j * 3) + 1) = subMesh.tris[j].b;
-			target->indices->at((j * 3) + 2) = subMesh.tris[j].a;
+			target->indices[j * 3]   = subMesh.tris[j].c;
+			target->indices[(j * 3) + 1] = subMesh.tris[j].b;
+			target->indices[(j * 3) + 2] = subMesh.tris[j].a;
 
 			//now to fill up its weighting information		
 		}

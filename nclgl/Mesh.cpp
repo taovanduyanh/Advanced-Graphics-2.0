@@ -46,19 +46,18 @@ Mesh::~Mesh(void) {
 	glDeleteTextures(1, &bumpTexture);
 
 	// data..
-	delete vertices;
-#ifdef USE_RAY_TRACING
-	delete facesList;
-#endif // USE_RAY_TRACING
-	delete colours;
-	delete textureCoords;
-	delete normals;
-	delete tangents;
-	delete indices;
+	delete[] vertices;
+	delete[] colours;
+	delete[] textureCoords;
+	delete[] normals;
+	delete[] tangents;
+	delete[] indices;
 
 	// Buffers..
 	glDeleteBuffers(MAX_BUFFER, bufferObject);
 #ifdef USE_RAY_TRACING
+	delete[] facesList;
+
 	glDeleteBuffers(MAX, verticesInfoSSBO);
 	glDeleteBuffers(1, &facesInfoSSBO);
 	glDeleteBuffers(1, &visibleFacesIDSSBO);
@@ -72,20 +71,20 @@ Mesh* Mesh::GenerateTriangle() {
 	
 	m->numVertices = m->numTexCoords = m->numNormals = 3;
 
-	m->vertices = new std::vector<Vector3>(m->numVertices);
-	m->vertices->at(0) = Vector3(0.0f, 0.5f, 0.0f);
-	m->vertices->at(1) = Vector3(0.5f, -0.5f, 0.0f);
-	m->vertices->at(2) = Vector3(-0.5f, -0.5f, 0.0f);
+	m->vertices = new Vector3[m->numVertices];
+	m->vertices[0] = Vector3(0.0f, 0.5f, 0.0f);
+	m->vertices[1] = Vector3(0.5f, -0.5f, 0.0f);
+	m->vertices[2] = Vector3(-0.5f, -0.5f, 0.0f);
 
-	m->textureCoords = new std::vector<Vector2>(m->numTexCoords);
-	m->textureCoords->at(0) = Vector2(0.5f, 0.0f);
-	m->textureCoords->at(1) = Vector2(1.0f, 1.0f);
-	m->textureCoords->at(2) = Vector2(0.0f, 1.0f);
+	m->textureCoords = new Vector2[m->numTexCoords];
+	m->textureCoords[0] = Vector2(0.5f, 0.0f);
+	m->textureCoords[1] = Vector2(1.0f, 1.0f);
+	m->textureCoords[2] = Vector2(0.0f, 1.0f);
 	
-	m->colours = new std::vector<Vector4>(m->numVertices);
-	m->colours->at(0) = Vector4(1.0f, 0.0f, 0.0f, 1.0f);
-	m->colours->at(1) = Vector4(0.0f, 1.0f, 0.0f, 1.0f);
-	m->colours->at(2) = Vector4(0.0f, 0.0f, 1.0f, 1.0f);
+	m->colours = new Vector4[m->numVertices];
+	m->colours[0] = Vector4(1.0f, 0.0f, 0.0f, 1.0f);
+	m->colours[1] = Vector4(0.0f, 1.0f, 0.0f, 1.0f);
+	m->colours[2] = Vector4(0.0f, 0.0f, 1.0f, 1.0f);
 
 	m->BufferData();
 
@@ -98,26 +97,26 @@ Mesh* Mesh::GenerateQuad() {
 	m->numVertices = m->numTexCoords = m->numNormals = 4;
 	m->type = GL_TRIANGLE_STRIP;
 	
-	m->vertices = new std::vector<Vector3>(m->numVertices);
-	m->textureCoords = new std::vector<Vector2>(m->numTexCoords);
-	m->colours = new std::vector<Vector4>(m->numVertices);
-	m->normals = new std::vector<Vector3>(m->numNormals);
-	m->tangents = new std::vector<Vector3>(m->numVertices);
+	m->vertices = new Vector3[m->numVertices];
+	m->textureCoords = new Vector2[m->numTexCoords];
+	m->colours = new Vector4[m->numVertices];
+	m->normals = new Vector3[m->numNormals];
+	m->tangents = new Vector3[m->numVertices];
 
-	m->vertices->at(0) = Vector3(-1.0f, -1.0f, 0.0f);
-	m->vertices->at(1) = Vector3(-1.0f, 1.0f, 0.0f);
-	m->vertices->at(2) = Vector3(1.0f, -1.0f, 0.0f);
-	m->vertices->at(3) = Vector3(1.0f, 1.0f, 0.0f);
+	m->vertices[0] = Vector3(-1.0f, -1.0f, 0.0f);
+	m->vertices[1] = Vector3(-1.0f, 1.0f, 0.0f);
+	m->vertices[2] = Vector3(1.0f, -1.0f, 0.0f);
+	m->vertices[3] = Vector3(1.0f, 1.0f, 0.0f);
 
-	m->textureCoords->at(0) = Vector2(0.0f, 1.0f);
-	m->textureCoords->at(1) = Vector2(0.0f, 0.0f);
-	m->textureCoords->at(2) = Vector2(1.0f, 1.0f);
-	m->textureCoords->at(3) = Vector2(1.0f, 0.0f);
+	m->textureCoords[0] = Vector2(0.0f, 1.0f);
+	m->textureCoords[1] = Vector2(0.0f, 0.0f);
+	m->textureCoords[2] = Vector2(1.0f, 1.0f);
+	m->textureCoords[3] = Vector2(1.0f, 0.0f);
 
 	for (int i = 0; i < 4; ++i) {
-		m->colours->at(i) = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
-		m->normals->at(i) = Vector3(0.0f, 0.0f, -1.0f);
-		m->tangents->at(i) = Vector3(1.0f, 0.0f, 0.0f);
+		m->colours[i] = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+		m->normals[i] = Vector3(0.0f, 0.0f, -1.0f);
+		m->tangents[i] = Vector3(1.0f, 0.0f, 0.0f);
 	}
 
 	m->BufferData();
@@ -128,14 +127,14 @@ void Mesh::BufferData() {
 	glBindVertexArray(arrayObject);
 	glGenBuffers(1, &bufferObject[VERTEX_BUFFER]);
 	glBindBuffer(GL_ARRAY_BUFFER, bufferObject[VERTEX_BUFFER]);
-	glBufferData(GL_ARRAY_BUFFER, numVertices * sizeof(Vector3), vertices->data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, numVertices * sizeof(Vector3), vertices, GL_STATIC_DRAW);
 	glVertexAttribPointer(VERTEX_BUFFER, 3, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(VERTEX_BUFFER);
 
 	if(colours) { // Just in case the data has no colour attribute ...
 		glGenBuffers(1, &bufferObject[COLOUR_BUFFER]);
 		glBindBuffer(GL_ARRAY_BUFFER, bufferObject[COLOUR_BUFFER]);
-		glBufferData(GL_ARRAY_BUFFER, numVertices * sizeof(Vector4), colours->data(), GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, numVertices * sizeof(Vector4), colours, GL_STATIC_DRAW);
 		glVertexAttribPointer(COLOUR_BUFFER, 4, GL_FLOAT, GL_FALSE, 0, 0);
 		glEnableVertexAttribArray(COLOUR_BUFFER);
 	}
@@ -143,7 +142,7 @@ void Mesh::BufferData() {
 	if (textureCoords) {
 		glGenBuffers(1, &bufferObject[TEXTURE_BUFFER]);
 		glBindBuffer(GL_ARRAY_BUFFER, bufferObject[TEXTURE_BUFFER]);
-		glBufferData(GL_ARRAY_BUFFER, numVertices * sizeof(Vector2), textureCoords->data(), GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, numVertices * sizeof(Vector2), textureCoords, GL_STATIC_DRAW);
 		glVertexAttribPointer(TEXTURE_BUFFER, 2, GL_FLOAT, GL_FALSE, 0, 0);
 		glEnableVertexAttribArray(TEXTURE_BUFFER);
 	}
@@ -151,7 +150,7 @@ void Mesh::BufferData() {
 	if (normals) {
 		glGenBuffers(1, &bufferObject[NORMAL_BUFFER]);
 		glBindBuffer(GL_ARRAY_BUFFER, bufferObject[NORMAL_BUFFER]);
-		glBufferData(GL_ARRAY_BUFFER, numVertices * sizeof(Vector3), normals->data(), GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, numVertices * sizeof(Vector3), normals, GL_STATIC_DRAW);
 		glVertexAttribPointer(NORMAL_BUFFER, 3, GL_FLOAT, GL_FALSE, 0, 0);
 		glEnableVertexAttribArray(NORMAL_BUFFER);
 	}
@@ -159,7 +158,7 @@ void Mesh::BufferData() {
 	if (tangents) {
 		glGenBuffers(1, &bufferObject[TANGENT_BUFFER]);
 		glBindBuffer(GL_ARRAY_BUFFER, bufferObject[TANGENT_BUFFER]);
-		glBufferData(GL_ARRAY_BUFFER, numVertices * sizeof(Vector3), tangents->data(), GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, numVertices * sizeof(Vector3), tangents, GL_STATIC_DRAW);
 		glVertexAttribPointer(TANGENT_BUFFER, 3, GL_FLOAT, GL_FALSE, 0, 0);
 		glEnableVertexAttribArray(TANGENT_BUFFER);
 	}
@@ -167,7 +166,7 @@ void Mesh::BufferData() {
 	if (indices) {
 		glGenBuffers(1, &bufferObject[INDEX_BUFFER]);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferObject[INDEX_BUFFER]);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, numIndices * sizeof(GLuint), indices->data(), GL_STATIC_DRAW);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, numIndices * sizeof(GLuint), indices, GL_STATIC_DRAW);
 	}
 
 	glBindVertexArray(0);
@@ -180,34 +179,34 @@ Mesh* Mesh::GenerateTriangleRayTracing() {
 
 	m->numVertices = m->numTexCoords = m->numNormals = 3;
 
-	m->vertices = new std::vector<Vector3>(m->numVertices);
-	m->vertices->at(0) = Vector3(0.0f, 0.5f, 0.0f);
-	m->vertices->at(1) = Vector3(0.5f, -0.5f, 0.0f);
-	m->vertices->at(2) = Vector3(-0.5f, -0.5f, 0.0f);
+	m->vertices = new Vector3[m->numVertices];
+	m->vertices[0] = Vector3(0.0f, 0.5f, 0.0f);
+	m->vertices[1] = Vector3(0.5f, -0.5f, 0.0f);
+	m->vertices[2] = Vector3(-0.5f, -0.5f, 0.0f);
 
-	m->textureCoords = new std::vector<Vector2>(m->numTexCoords);
-	m->textureCoords->at(0) = Vector2(0.5f, 0.0f);
-	m->textureCoords->at(1) = Vector2(1.0f, 1.0f);
-	m->textureCoords->at(2) = Vector2(0.0f, 1.0f);
+	m->textureCoords = new Vector2[m->numTexCoords];
+	m->textureCoords[0] = Vector2(0.5f, 0.0f);
+	m->textureCoords[1] = Vector2(1.0f, 1.0f);
+	m->textureCoords[2] = Vector2(0.0f, 1.0f);
 
-	m->colours = new std::vector<Vector4>(m->numVertices);
-	m->colours->at(0) = Vector4(1.0f, 0.0f, 0.0f, 1.0f);
-	m->colours->at(1) = Vector4(0.0f, 1.0f, 0.0f, 1.0f);
-	m->colours->at(2) = Vector4(0.0f, 0.0f, 1.0f, 1.0f);
+	m->colours = new Vector4[m->numVertices];
+	m->colours[0] = Vector4(1.0f, 0.0f, 0.0f, 1.0f);
+	m->colours[1] = Vector4(0.0f, 1.0f, 0.0f, 1.0f);
+	m->colours[2] = Vector4(0.0f, 0.0f, 1.0f, 1.0f);
 
 	m->numFaces = 1;
 	// Settings the normals and face here..
 	// NOTE: this is just simply for a single triangle..
-	m->normals = new std::vector<Vector3>(m->numNormals);
-	m->facesList = new std::vector<Triangle>(m->numFaces);
-	m->facesList->at(0) = Triangle();
+	m->normals = new Vector3[m->numNormals];
+	m->facesList = new Triangle[m->numFaces];
+	m->facesList[0] = Triangle();
 	// this allows the triangle's normal to be correctly calculated due to the whole negative z thingy
 	// normal way can be used as well, but then it would requires to flip the camera direction calculation..
 	for (GLuint i = 0; i < m->numVertices; ++i) {
-		m->normals->at(i) = Vector3(0.0f, 0.0f, -1.0f);
-		m->facesList->at(0).verticesIndices[i] = 2 - i;
-		m->facesList->at(0).texCoordsIndices[i] = 2 - i;
-		m->facesList->at(0).normalsIndices[i] = 2 - i;
+		m->normals[i] = Vector3(0.0f, 0.0f, -1.0f);
+		m->facesList[0].verticesIndices[i] = 2 - i;
+		m->facesList[0].texCoordsIndices[i] = 2 - i;
+		m->facesList[0].normalsIndices[i] = 2 - i;
 	}
 
 	m->GenerateSSBOs();
@@ -221,47 +220,47 @@ Mesh* Mesh::GenerateQuadRayTracing() {
 	m->numVertices = m->numTexCoords = m->numNormals = 4;
 	m->type = GL_TRIANGLE_STRIP;
 
-	m->vertices = new std::vector<Vector3>(m->numVertices);
-	m->textureCoords = new std::vector<Vector2>(m->numTexCoords);
-	m->colours = new std::vector<Vector4>(m->numVertices);
-	m->normals = new std::vector<Vector3>(m->numNormals);
-	m->tangents = new std::vector<Vector3>(m->numVertices);
+	m->vertices = new Vector3[m->numVertices];
+	m->textureCoords = new Vector2[m->numTexCoords];
+	m->colours = new Vector4[m->numVertices];
+	m->normals = new Vector3[m->numNormals];
+	m->tangents = new Vector3[m->numVertices];
 
-	m->vertices->at(0) = Vector3(-1.0f, -1.0f, 0.0f);
-	m->vertices->at(1) = Vector3(-1.0f, 1.0f, 0.0f);
-	m->vertices->at(2) = Vector3(1.0f, -1.0f, 0.0f);
-	m->vertices->at(3) = Vector3(1.0f, 1.0f, 0.0f);
+	m->vertices[0] = Vector3(-1.0f, -1.0f, 0.0f);
+	m->vertices[1] = Vector3(-1.0f, 1.0f, 0.0f);
+	m->vertices[2] = Vector3(1.0f, -1.0f, 0.0f);
+	m->vertices[3] = Vector3(1.0f, 1.0f, 0.0f);
 
-	m->textureCoords->at(0) = Vector2(0.0f, 1.0f);
-	m->textureCoords->at(1) = Vector2(0.0f, 0.0f);
-	m->textureCoords->at(2) = Vector2(1.0f, 1.0f);
-	m->textureCoords->at(3) = Vector2(1.0f, 0.0f);
+	m->textureCoords[0] = Vector2(0.0f, 1.0f);
+	m->textureCoords[1] = Vector2(0.0f, 0.0f);
+	m->textureCoords[2] = Vector2(1.0f, 1.0f);
+	m->textureCoords[3] = Vector2(1.0f, 0.0f);
 
 	for (int i = 0; i < 4; ++i) {
-		m->colours->at(i) = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
-		m->normals->at(i) = Vector3(0.0f, 0.0f, -1.0f);
-		m->tangents->at(i) = Vector3(1.0f, 0.0f, 0.0f);
+		m->colours[i] = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+		m->normals[i] = Vector3(0.0f, 0.0f, -1.0f);
+		m->tangents[i] = Vector3(1.0f, 0.0f, 0.0f);
 	}
 
 	// Faces..
 	m->numFaces = 2;
-	m->facesList = new std::vector<Triangle>(m->numFaces);
+	m->facesList = new Triangle[m->numFaces];
 	for (GLuint i = 0; i < m->numFaces; ++i) {
-		m->facesList->at(i) = Triangle();
+		m->facesList[i] = Triangle();
 	}
 
 	// 1st triangle
 	for (int i = 0; i < 3; ++i) {
-		m->facesList->at(0).verticesIndices[2 - i] = i;
-		m->facesList->at(0).texCoordsIndices[2 - i] = i;
-		m->facesList->at(0).normalsIndices[2 - i] = i;
+		m->facesList[0].verticesIndices[2 - i] = i;
+		m->facesList[0].texCoordsIndices[2 - i] = i;
+		m->facesList[0].normalsIndices[2 - i] = i;
 	}
 
 	// 2nd triangle
 	for (int i = 0, j = 1; i < 3; ++i, ++j) {
-		m->facesList->at(1).verticesIndices[i] = j;
-		m->facesList->at(1).texCoordsIndices[i] = j;
-		m->facesList->at(1).normalsIndices[i] = j;
+		m->facesList[1].verticesIndices[i] = j;
+		m->facesList[1].texCoordsIndices[i] = j;
+		m->facesList[1].normalsIndices[i] = j;
 	}
 
 	m->GenerateSSBOs();
@@ -274,7 +273,7 @@ void Mesh::GenerateVerticesSSBOs() {
 
 	// Positions
 	for (unsigned int i = 0; i < numVertices; ++i) {
-		temp.push_back(Vector4(vertices->at(i).x, vertices->at(i).y, vertices->at(i).z, 1.0));
+		temp.push_back(Vector4(vertices[i].x, vertices[i].y, vertices[i].z, 1.0));
 	}
 	glGenBuffers(1, &verticesInfoSSBO[POSITION]);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[POSITION]);
@@ -286,7 +285,7 @@ void Mesh::GenerateVerticesSSBOs() {
 	if (colours) {
 		glGenBuffers(1, &verticesInfoSSBO[COLOUR]);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[COLOUR]);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(Vector4), colours->data(), GL_STATIC_DRAW);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(Vector4), colours, GL_STATIC_DRAW);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	}
 
@@ -294,13 +293,13 @@ void Mesh::GenerateVerticesSSBOs() {
 	if (textureCoords) {
 		glGenBuffers(1, &verticesInfoSSBO[TEX_COORD]);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[TEX_COORD]);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, numTexCoords * sizeof(Vector2), textureCoords->data(), GL_STATIC_DRAW);	// change this later..
+		glBufferData(GL_SHADER_STORAGE_BUFFER, numTexCoords * sizeof(Vector2), textureCoords, GL_STATIC_DRAW);	// change this later..
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	}
 
 	// Normals
 	for (GLuint i = 0; i < numNormals; ++i) {
-		temp.push_back(Vector4(normals->at(i).x, normals->at(i).y, normals->at(i).z, 1.0f));
+		temp.push_back(Vector4(normals[i].x, normals[i].y, normals[i].z, 1.0f));
 	}
 	glGenBuffers(1, &verticesInfoSSBO[NORMAL]);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, verticesInfoSSBO[NORMAL]);
@@ -313,14 +312,13 @@ void Mesh::GenerateFacesSSBOs() {
 	// Faces
 	glGenBuffers(1, &facesInfoSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, facesInfoSSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, numFaces * sizeof(Triangle), facesList->data(), GL_STATIC_DRAW);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, numFaces * sizeof(Triangle), facesList, GL_STATIC_DRAW);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	// Face ID 
 	glGenBuffers(1, &visibleFacesIDSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, visibleFacesIDSSBO);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, numFaces * sizeof(GLint), NULL, GL_DYNAMIC_DRAW);
-	//glBindBufferBase(GL_SHADER_STORAGE_BUFFER, MAX, visibleFacesIDSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	// Root node 
@@ -332,8 +330,6 @@ void Mesh::GenerateFacesSSBOs() {
 
 	// Leaf nodes
 	glGenBuffers(1, &leafNodesSSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, leafNodesSSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
 void Mesh::GenerateSSBOs() {
@@ -349,13 +345,13 @@ void Mesh::UpdateCollectedID() {
 	for (GLuint i = 0; i < numFaces; ++i) {
 		if (ptr[i] != -1) {
 			collectedID.push_back(ptr[i]);
+			ptr[i] = -1;	// reset here..
 		}
 	}
 
 	numVisibleFaces = static_cast<GLuint>(collectedID.size());
 
 	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, collectedID.size() * sizeof(GLint), collectedID.data());
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
@@ -382,81 +378,70 @@ void Mesh::BindSSBOs() {
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, leafNodesSSBO);	// perhaps change this later, further testing 9..
 }
 
-void Mesh::PrintDistances() {
-	//glBindBuffer(GL_SHADER_STORAGE_BUFFER, planeDsSSBO);
-	//float* d = static_cast<float*>(glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE));
-	//for (int i = 0; i < numVisibleFaces * 7 * 2; i += 2) {
-	//	cout << d[i] << " " << d[i + 1] << endl;
-	//}
-	//cout << endl;
-	//glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-	//glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-}
-
 #endif // USE_RAY_TRACING
 
 void Mesh::GenerateNormals() {
 	if (!normals) {
-		normals = new std::vector<Vector3>(numVertices);
+		normals = new Vector3[numVertices];
 	}
 
 	for (GLuint i = 0; i < numVertices; ++i) {
-		normals->at(i) = Vector3();
+		normals[i] = Vector3();
 	}
 #ifdef USE_RAY_TRACING
 	if (facesList) {
 		for (GLuint i = 0; i < numFaces; ++i) {
-			GLuint a = facesList->at(i).verticesIndices[0];
-			GLuint b = facesList->at(i).verticesIndices[1];
-			GLuint c = facesList->at(i).verticesIndices[2];
+			GLuint a = facesList[i].verticesIndices[0];
+			GLuint b = facesList[i].verticesIndices[1];
+			GLuint c = facesList[i].verticesIndices[2];
 
-			Vector3 v0 = vertices->at(a);
-			Vector3 v1 = vertices->at(b);
-			Vector3 v2 = vertices->at(c);
+			Vector3 v0 = vertices[a];
+			Vector3 v1 = vertices[b];
+			Vector3 v2 = vertices[c];
 
 			Vector3 normal = Vector3::Cross(v1 - v0, v2 - v0);
 
-			normals->at(a) += normal;
-			normals->at(b) += normal;
-			normals->at(c) += normal;
+			normals[a] += normal;
+			normals[b] += normal;
+			normals[c] += normal;
 		}
 	}
 #else
 	if (indices) {
 		for (GLuint i = 0; i < numIndices; i += 3) {
-			GLuint a = indices->at(i);
-			GLuint b = indices->at(i + 1);
-			GLuint c = indices->at(i + 2);
+			GLuint a = indices[i];
+			GLuint b = indices[i + 1];
+			GLuint c = indices[i + 2];
 
-			Vector3 normal = Vector3::Cross(vertices->at(b) - vertices->at(a), vertices->at(c) - vertices->at(a));
+			Vector3 normal = Vector3::Cross(vertices[b] - vertices[a], vertices[c] - vertices[a]);
 
-			normals->at(a) += normal;
-			normals->at(b) += normal;
-			normals->at(c) += normal;
+			normals[a] += normal;
+			normals[b] += normal;
+			normals[c] += normal;
 		}
 	}
 	else {
 		for (GLuint i = 0; i < numVertices; i += 3) {
-			Vector3& a = vertices->at(i);
-			Vector3& b = vertices->at(i + 1);
-			Vector3& c = vertices->at(i + 2);
+			Vector3& a = vertices[i];
+			Vector3& b = vertices[i + 1];
+			Vector3& c = vertices[i + 2];
 
 			Vector3 normal = Vector3::Cross(b - a, c - a);
 
-			normals->at(i) = normal;
-			normals->at(i + 1) = normal;
-			normals->at(i + 2) = normal;
+			normals[i] = normal;
+			normals[i + 1] = normal;
+			normals[i + 2] = normal;
 		}
 	}
 #endif // USE_RAY_TRACING
 	for (GLuint i = 0; i < numVertices; ++i) {
-		normals->at(i).Normalise();
+		normals[i].Normalise();
 	}
 }
 
 void Mesh::GenerateTangents() {
 	if (!tangents) {
-		tangents = new std::vector<Vector3>(numVertices);
+		tangents = new Vector3[numVertices];
 	}
 
 	if (!textureCoords) {
@@ -464,55 +449,55 @@ void Mesh::GenerateTangents() {
 	}
 
 	for (GLuint i = 0; i < numVertices; ++i) {
-		tangents->at(i) = Vector3();
+		tangents[i] = Vector3();
 	}
 
 #ifdef USE_RAY_TRACING
 	if (facesList) {
 		for (GLuint i = 0; i < numFaces; ++i) {
 			// Vertices indices..
-			GLuint a = facesList->at(i).verticesIndices[0];
-			GLuint b = facesList->at(i).verticesIndices[1];
-			GLuint c = facesList->at(i).verticesIndices[2];
+			GLuint a = facesList[i].verticesIndices[0];
+			GLuint b = facesList[i].verticesIndices[1];
+			GLuint c = facesList[i].verticesIndices[2];
 
 			// Texture coords indices..
-			GLuint ta = facesList->at(i).texCoordsIndices[0];
-			GLuint tb = facesList->at(i).texCoordsIndices[1];
-			GLuint tc = facesList->at(i).texCoordsIndices[2];
+			GLuint ta = facesList[i].texCoordsIndices[0];
+			GLuint tb = facesList[i].texCoordsIndices[1];
+			GLuint tc = facesList[i].texCoordsIndices[2];
 
-			Vector3 tangent = GenerateTangent(vertices->at(a), vertices->at(b), vertices->at(c), textureCoords->at(ta), textureCoords->at(tb), textureCoords->at(tc));
+			Vector3 tangent = GenerateTangent(vertices[a], vertices[b], vertices[c], textureCoords[ta], textureCoords[tb], textureCoords[tc]);
 
-			tangents->at(a) += tangent;
-			tangents->at(b) += tangent;
-			tangents->at(c) += tangent;
+			tangents[a] += tangent;
+			tangents[b] += tangent;
+			tangents[c] += tangent;
 		}
 	}
 #else
 	if (indices) {
 		for (GLuint i = 0; i < numIndices; i += 3) {
-			int a = indices->at(i);
-			int b = indices->at(i + 1);
-			int c = indices->at(i + 2);
+			int a = indices[i];
+			int b = indices[i + 1];
+			int c = indices[i + 2];
 
-			Vector3 tangent = GenerateTangent(vertices->at(a), vertices->at(b), vertices->at(c), textureCoords->at(a), textureCoords->at(b), textureCoords->at(c));
+			Vector3 tangent = GenerateTangent(vertices[a], vertices[b], vertices[c], textureCoords[a], textureCoords[b], textureCoords[c]);
 
-			tangents->at(a) += tangent;
-			tangents->at(b) += tangent;
-			tangents->at(c) += tangent;
+			tangents[a] += tangent;
+			tangents[b] += tangent;
+			tangents[c] += tangent;
 		}
 	}
 	else {
 		for (GLuint i = 0; i < numVertices; i+=3) {
-			Vector3 tangent = GenerateTangent(vertices->at(i), vertices->at(i + 1), vertices->at(i + 2), textureCoords->at(i), textureCoords->at(i + 1), textureCoords->at(i + 2));
+			Vector3 tangent = GenerateTangent(vertices[i], vertices[i + 1], vertices[i + 2], textureCoords[i], textureCoords[i + 1], textureCoords[i + 2]);
 
-			tangents->at(i) += tangent;
-			tangents->at(i + 1) += tangent;
-			tangents->at(i + 2) += tangent;
+			tangents[i] += tangent;
+			tangents[i + 1] += tangent;
+			tangents[i + 2] += tangent;
 		}
 	}
 #endif // USE_RAY_TRACING
 	for (GLuint i = 0; i < numVertices; ++i) {
-		tangents->at(i).Normalise();
+		tangents[i].Normalise();
 	}
 }
 

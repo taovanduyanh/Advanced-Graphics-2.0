@@ -8,16 +8,12 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	sceneQuad = Mesh::GenerateQuad();
 
 	camera = new Camera();
-	camera->SetPosition(Vector3(-15, 785, 2250)); // first view.. (note: for deer mesh)
-	//camera->SetPosition(Vector3(2290, 850, 15)); // second view.. (note: for deer mesh)
-	//camera->SetYaw(90); // second view.. (note: for deer mesh)
+	camera->SetPosition(Vector3(0, 785, 2250));
 
 	// SSBO to temporarily store the dmin and dmax from the chosen plane normals..
-	glGenBuffers(1, &tempPlaneDsSSBO);
-
-	// second one, further testing 9..
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, tempPlaneDsSSBO);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 9, tempPlaneDsSSBO);
+	glGenBuffers(1, &tempGroupNodesSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, tempGroupNodesSSBO);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 9, tempGroupNodesSSBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	// Stuffs related to compute shader..
@@ -71,7 +67,7 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	// further testing..
 	// lighting..
 	light = new Light();
-	light->SetPosition(Vector3(0, 2500, 0));
+	light->SetPosition(Vector3(150, 5000, 50));
 	//light->SetColour(Vector4(0.98f, 0.45f, 0.99f, 1.0f));	
 	light->SetColour(Vector4(1.0f, 1.0f, 1.0f, 1.0f));
 
@@ -90,6 +86,7 @@ Renderer::Renderer(Window& parent) : OGLRenderer(parent) {
 	}
 
 	init = true;
+	cout << triangle->GetNumFaces() << endl;
 }
 
 Renderer::~Renderer(void) {
@@ -109,7 +106,7 @@ Renderer::~Renderer(void) {
 
 	glDeleteTextures(1, &image);
 
-	glDeleteBuffers(1, &tempPlaneDsSSBO);
+	glDeleteBuffers(1, &tempGroupNodesSSBO);
 	glDeleteFramebuffers(1, &bufferFBO);
 }
 
@@ -170,7 +167,7 @@ void Renderer::InitMeshReading(Mesh* m) {
 	// ALWAYS bind the SSBOs of the meshes before doing stuffs..
 	m->BindSSBOs();
 
-	modelMatrix = Matrix4::Translation(Vector3(0, -2.5f, -15));
+	modelMatrix = Matrix4::Translation(Vector3(0, 0, -5));
 	UpdateShaderMatrices();
 	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraPosition"), 1, (float*)&camera->GetPosition());
 	glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numTriangles"), m->GetNumFaces());
@@ -198,6 +195,9 @@ void Renderer::InitBoundingVolume(Mesh* m) {
 	m->BindSSBOs();
 
 	InitBoundingVolumeMulti(numWorkGroups, numFacesPerGroup, numVisibleFaces);
+
+	// further testing 10..
+	//m->PrintDistances();
 }
 
 void Renderer::InitBoundingVolumeMulti(GLuint numWorkGroups, GLuint numFacesPerGroup, GLuint numVisibleFaces) {
@@ -209,14 +209,15 @@ void Renderer::InitBoundingVolumeMulti(GLuint numWorkGroups, GLuint numFacesPerG
 
 	glDispatchComputeGroupSizeARB(numWorkGroups, 1, 1, numFacesPerGroup, NUM_PLANE_NORMALS, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
+	
 	// second stage..
 	SetCurrentShader(volumeCreatorSecond);
 
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, tempPlaneDsSSBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, tempGroupNodesSSBO);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, numWorkGroups * NUM_PLANE_NORMALS * 2 * sizeof(float), NULL, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
+	glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numVisibleFaces"), numVisibleFaces);
 	glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "numFacesPerGroup"), numFacesPerGroup);
 	glUniform1ui(glGetUniformLocation(currentShader->GetProgram(), "maxIndex"), numVisibleFaces * NUM_PLANE_NORMALS);
 

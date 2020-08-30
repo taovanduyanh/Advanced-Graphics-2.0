@@ -1,8 +1,0 @@
-﻿  Renderer.cpp
-E:\Misc\Diss 2020\Code\Graphics For Games\5) Stencils & Scissors\Renderer.cpp(43,91): warning C4244: 'argument': conversion from 'float' to 'GLsizei', possible loss of data
-E:\Misc\Diss 2020\Code\Graphics For Games\5) Stencils & Scissors\Renderer.cpp(43,69): warning C4244: 'argument': conversion from 'float' to 'GLsizei', possible loss of data
-E:\Misc\Diss 2020\Code\Graphics For Games\5) Stencils & Scissors\Renderer.cpp(43,48): warning C4244: 'argument': conversion from 'float' to 'GLint', possible loss of data
-E:\Misc\Diss 2020\Code\Graphics For Games\5) Stencils & Scissors\Renderer.cpp(43,26): warning C4244: 'argument': conversion from 'float' to 'GLint', possible loss of data
-  tutorial5.cpp
-  Generating Code...
-  Tutorial5.vcxproj -> E:\Misc\Diss 2020\Code\Graphics For Games\Debug\Tutorial 05 - Scissors and Stencils.exe

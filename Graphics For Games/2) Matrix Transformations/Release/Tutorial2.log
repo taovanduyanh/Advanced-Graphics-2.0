@@ -1,3 +1,0 @@
-﻿  Renderer.cpp
-  tutorial2.cpp
-LINK : fatal error LNK1104: cannot open file 'nclgl.lib'
